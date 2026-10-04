@@ -795,7 +795,7 @@ async function saveMaterial(){
     document.getElementById("materialNotes")
     .value.trim();
 
-
+const location = document.getElementById("materialLocation").value;
   if(!name){
     alert(t("enterName"));
     return;
@@ -817,7 +817,8 @@ async function saveMaterial(){
         quantity:quantity,
         unit:unit,
         minimum:minimum,
-        notes:notes
+        notes:notes,
+        location:location
       })
       .eq("id",String(editingMaterialId));
 
@@ -844,6 +845,7 @@ async function saveMaterial(){
         unit:unit,
         minimum:minimum,
         notes:notes,
+        location:location,
         history:[]
       });
 
