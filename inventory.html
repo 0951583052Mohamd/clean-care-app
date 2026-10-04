@@ -897,7 +897,8 @@ function editMaterial(id){
 
   document.getElementById("materialNotes").value=
     material.notes || "";
-
+document.getElementById("materialLocation").value=
+    material.location || "";
   document.getElementById("cancelButton")
     .classList.remove("hidden");
 
