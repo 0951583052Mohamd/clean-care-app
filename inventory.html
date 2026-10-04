@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clean & Care - المخزون</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+  font-family:Arial,sans-serif;
+  background:#f4f6f8;
+  margin:0;
+  padding:20px;
+  color:#222;
+}
+.container{max-width:1100px;margin:auto}
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:20px;
+}
+h1,h2{margin:0 0 15px}
+.card{
+  background:white;
+  padding:20px;
+  border-radius:14px;
+  margin-bottom:20px;
+  box-shadow:0 2px 10px rgba(0,0,0,.08);
+}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:10px;
+}
+input,select,textarea,button{
+  width:100%;
+  box-sizing:border-box;
+  padding:11px;
+  margin:5px 0;
+  border:1px solid #ccc;
+  border-radius:8px;
+  font-size:15px;
+}
+textarea{min-height:80px;resize:vertical}
+button{
+  background:#222;
+  color:white;
+  border:none;
+  cursor:pointer;
+}
+button:hover{opacity:.9}
+.btn-small{width:auto;padding:8px 12px;margin:2px}
+.btn-edit{background:#1976d2}
+.btn-delete{background:#d32f2f}
+.btn-back{background:#555}
+.btn-language{background:#00897b}
+.btn-add{background:#2e7d32}
+.btn-remove{background:#ef6c00}
+.stats{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:10px;
+}
+.stat{
+  background:#f1f3f5;
+  padding:15px;
+  border-radius:10px;
+  text-align:center;
+}
+.stat strong{
+  display:block;
+  font-size:24px;
+  margin-bottom:5px;
+}
+.material{
+  border:1px solid #ddd;
+  padding:15px;
+  border-radius:10px;
+  margin-top:12px;
+}
+.material.low{
+  border-color:#ef6c00;
+  background:#fff8f0;
+}
+.material-name{
+  font-size:18px;
+  font-weight:bold;
+  margin-bottom:8px;
+}
+.badge{
+  display:inline-block;
+  padding:5px 9px;
+  border-radius:20px;
+  margin:3px;
+  background:#eee;
+}
+.badge-green{background:#d7f5dc}
+.badge-orange{background:#ffe0b2}
+.badge-red{background:#ffcdd2}
+.history{
+  margin-top:10px;
+  padding:10px;
+  background:#fafafa;
+  border-radius:8px;
+}
+.history-item{
+  border-bottom:1px solid #eee;
+  padding:8px 0;
+}
+.history-item:last-child{border-bottom:none}
+.empty{color:#777;padding:10px}
+.hidden{display:none}
+.warning{
+  background:#fff3cd;
+  border:1px solid #ffecb5;
+  padding:12px;
+  border-radius:10px;
+  margin-bottom:15px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="header">
+    <h1 id="pageTitle">المخزون والمواد</h1>
+
+    <div>
+      <button class="btn-small btn-back"
+              onclick="goHome()"
+              id="backBtn">
+        العودة للرئيسية
+      </button>
+
+      <button class="btn-small btn-language"
+              onclick="toggleLanguage()"
+              id="languageBtn">
+        Deutsch
+      </button>
+    </div>
+  </div>
+
+  <div id="lowStockWarning"
+       class="warning hidden"></div>
+
+  <div class="card">
+
+    <h2 id="addTitle">إضافة مادة جديدة</h2>
+
+    <div class="grid">
+
+      <div>
+        <label id="nameLabel">اسم المادة</label>
+        <input id="materialName"
+               type="text"
+               placeholder="اسم المادة">
+      </div>
+
+      <div>
+        <label id="quantityLabel">الكمية الحالية</label>
+        <input id="materialQuantity"
+               type="number"
+               min="0"
+               step="any"
+               value="0"
+               placeholder="0">
+      </div>
+
+      <div>
+        <label id="unitLabel">الوحدة</label>
+
+        <select id="materialUnit">
+          <option value="piece" id="unitPiece">قطعة</option>
+          <option value="liter" id="unitLiter">لتر</option>
+          <option value="kg" id="unitKg">كيلوغرام</option>
+          <option value="box" id="unitBox">علبة</option>
+          <option value="carton" id="unitCarton">كرتون</option>
+          <option value="roll" id="unitRoll">رول</option>
+          <option value="bag" id="unitBag">كيس</option>
+        </select>
+      </div>
+
+      <div>
+        <label id="minimumLabel">الحد الأدنى</label>
+        <input id="minimumQuantity"
+               type="number"
+               min="0"
+               step="any"
+               value="0"
+               placeholder="0">
+      </div>
+
+    </div>
+
+    <div>
+      <label id="notesLabel">ملاحظات</label>
+
+      <textarea id="materialNotes"
+                placeholder="ملاحظات عن المادة"></textarea>
+    </div>
+
+    <button onclick="saveMaterial()"
+            id="saveButton">
+      إضافة المادة
+    </button>
+
+    <button onclick="cancelEdit()"
+            class="btn-back hidden"
+            id="cancelButton">
+      إلغاء التعديل
+    </button>
+
+  </div>
+
+  <div class="card">
+
+    <h2 id="statsTitle">إحصائيات المخزون</h2>
+
+    <div class="stats">
+
+      <div class="stat">
+        <strong id="totalMaterials">0</strong>
+        <span id="totalMaterialsText">عدد المواد</span>
+      </div>
+
+      <div class="stat">
+        <strong id="totalQuantity">0</strong>
+        <span id="totalQuantityText">إجمالي الكميات</span>
+      </div>
+
+      <div class="stat">
+        <strong id="lowMaterials">0</strong>
+        <span id="lowMaterialsText">مواد منخفضة</span>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 id="listTitle">قائمة المواد</h2>
+    <div id="materialsList"></div>
+  </div>
+
+  <div class="card hidden" id="movementCard">
+
+    <h2 id="movementTitle">حركة المخزون</h2>
+
+    <div id="selectedMaterialName"></div>
+
+    <div class="grid">
+
+      <div>
+        <label id="movementTypeLabel">نوع الحركة</label>
+
+        <select id="movementType">
+          <option value="add" id="movementAdd">إضافة</option>
+          <option value="remove" id="movementRemove">خصم</option>
+        </select>
+      </div>
+
+      <div>
+        <label id="movementQuantityLabel">الكمية</label>
+
+        <input id="movementQuantity"
+               type="number"
+               min="0"
+               step="any"
+               placeholder="الكمية">
+      </div>
+
+    </div>
+
+    <div>
+      <label id="reasonLabel">السبب</label>
+
+      <input id="movementReason"
+             type="text"
+             placeholder="سبب الإضافة أو الخصم">
+    </div>
+
+    <button onclick="saveMovement()"
+            class="btn-add"
+            id="saveMovementButton">
+      حفظ الحركة
+    </button>
+
+    <button onclick="closeMovement()"
+            class="btn-back"
+            id="closeMovementButton">
+      إغلاق
+    </button>
+
+  </div>
+
+</div>
+
+<script>
+
+/* =========================
+   Supabase
+========================= */
+
+const SUPABASE_URL =
+"https://vjllurkvzvumsfjxuxuz.supabase.co";
+
+const SUPABASE_PUBLISHABLE_KEY =
+"sb_publishable_4TiwsqWNph3wQzdoASlasg_gh4x1Atz";
+
+const supabaseClient =
+window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
+
+
+/* =========================
+   البيانات
+========================= */
+
+let language =
+localStorage.getItem("appLanguage") || "ar";
+
+let materials=[];
+
+let editingMaterialId=null;
+let selectedMaterialId=null;
+
+
+/* =========================
+   الترجمة
+========================= */
+
+const translations={
+
+ar:{
+title:"المخزون والمواد",
+back:"العودة للرئيسية",
+language:"Deutsch",
+addTitle:"إضافة مادة جديدة",
+name:"اسم المادة",
+quantity:"الكمية الحالية",
+unit:"الوحدة",
+minimum:"الحد الأدنى",
+notes:"ملاحظات",
+namePlaceholder:"اسم المادة",
+notesPlaceholder:"ملاحظات عن المادة",
+addMaterial:"إضافة المادة",
+saveChanges:"حفظ التعديلات",
+cancel:"إلغاء التعديل",
+piece:"قطعة",
+liter:"لتر",
+kg:"كيلوغرام",
+box:"علبة",
+carton:"كرتون",
+roll:"رول",
+bag:"كيس",
+stats:"إحصائيات المخزون",
+materialsCount:"عدد المواد",
+totalQuantity:"إجمالي الكميات",
+lowMaterials:"مواد منخفضة",
+list:"قائمة المواد",
+noMaterials:"لا توجد مواد حتى الآن.",
+edit:"تعديل",
+delete:"حذف",
+movement:"حركة المخزون",
+add:"إضافة",
+remove:"خصم",
+movementType:"نوع الحركة",
+movementQuantity:"الكمية",
+reason:"السبب",
+reasonPlaceholder:"سبب الإضافة أو الخصم",
+quantityPlaceholder:"الكمية",
+saveMovement:"حفظ الحركة",
+close:"إغلاق",
+currentStock:"المخزون الحالي",
+minimumStock:"الحد الأدنى",
+unitText:"الوحدة",
+lowStock:"المخزون منخفض",
+normalStock:"المخزون طبيعي",
+history:"سجل الحركات",
+noHistory:"لا توجد حركات مسجلة.",
+added:"إضافة",
+removed:"خصم",
+materialAdded:"تمت إضافة المادة.",
+materialUpdated:"تم تعديل المادة.",
+materialDeleted:"تم حذف المادة.",
+movementSaved:"تم حفظ حركة المخزون.",
+enterName:"اكتب اسم المادة.",
+enterQuantity:"اكتب كمية صحيحة.",
+enterMovementQuantity:"اكتب كمية الحركة.",
+insufficient:"الكمية المطلوبة أكبر من المخزون الحالي.",
+confirmDelete:"هل تريد حذف هذه المادة؟",
+lowWarning:"يوجد مواد وصلت إلى الحد الأدنى أو أقل.",
+loadError:"تعذر تحميل مواد المخزون.",
+saveError:"تعذر حفظ المادة.",
+deleteError:"تعذر حذف المادة."
+},
+
+de:{
+title:"Lager und Materialien",
+back:"Startseite",
+language:"العربية",
+addTitle:"Neues Material hinzufügen",
+name:"Materialname",
+quantity:"Aktueller Bestand",
+unit:"Einheit",
+minimum:"Mindestbestand",
+notes:"Notizen",
+namePlaceholder:"Materialname",
+notesPlaceholder:"Notizen zum Material",
+addMaterial:"Material hinzufügen",
+saveChanges:"Änderungen speichern",
+cancel:"Bearbeitung abbrechen",
+piece:"Stück",
+liter:"Liter",
+kg:"Kilogramm",
+box:"Box",
+carton:"Karton",
+roll:"Rolle",
+bag:"Sack",
+stats:"Lagerstatistik",
+materialsCount:"Anzahl Materialien",
+totalQuantity:"Gesamtbestand",
+lowMaterials:"Niedriger Bestand",
+list:"Materialliste",
+noMaterials:"Noch keine Materialien vorhanden.",
+edit:"Bearbeiten",
+delete:"Löschen",
+movement:"Lagerbewegung",
+add:"Hinzufügen",
+remove:"Abziehen",
+movementType:"Bewegungsart",
+movementQuantity:"Menge",
+reason:"Grund",
+reasonPlaceholder:"Grund für Hinzufügen oder Abziehen",
+quantityPlaceholder:"Menge",
+saveMovement:"Bewegung speichern",
+close:"Schließen",
+currentStock:"Aktueller Bestand",
+minimumStock:"Mindestbestand",
+unitText:"Einheit",
+lowStock:"Bestand niedrig",
+normalStock:"Bestand normal",
+history:"Bewegungsverlauf",
+noHistory:"Keine Bewegungen vorhanden.",
+added:"Hinzufügung",
+removed:"Abzug",
+materialAdded:"Material wurde hinzugefügt.",
+materialUpdated:"Material wurde geändert.",
+materialDeleted:"Material wurde gelöscht.",
+movementSaved:"Lagerbewegung wurde gespeichert.",
+enterName:"Bitte Materialname eingeben.",
+enterQuantity:"Bitte eine gültige Menge eingeben.",
+enterMovementQuantity:"Bitte Bewegungsmenge eingeben.",
+insufficient:"Die gewünschte Menge ist größer als der aktuelle Bestand.",
+confirmDelete:"Möchten Sie dieses Material löschen?",
+lowWarning:"Einige Materialien haben den Mindestbestand erreicht oder unterschritten.",
+loadError:"Lagermaterialien konnten nicht geladen werden.",
+saveError:"Material konnte nicht gespeichert werden.",
+deleteError:"Material konnte nicht gelöscht werden."
+}
+
+};
+
+function t(key){
+  return translations[language][key] || key;
+}
+
+function escapeHtml(value){
+  return String(value ?? "")
+  .replace(/&/g,"&amp;")
+  .replace(/</g,"&lt;")
+  .replace(/>/g,"&gt;")
+  .replace(/"/g,"&quot;")
+  .replace(/'/g,"&#039;");
+}
+
+function newId(){
+  return Date.now().toString()+
+  Math.random().toString(16).slice(2);
+}
+
+
+/* =========================
+   نسخة محلية للتوافق
+========================= */
+
+function mirrorMaterialsLocally(){
+
+  localStorage.setItem(
+    "materials",
+    JSON.stringify(materials)
+  );
+}
+
+
+/* =========================
+   تحميل المواد من Supabase
+========================= */
+
+async function loadMaterials(){
+
+  const oldMaterials=
+    JSON.parse(
+      localStorage.getItem("materials") || "[]"
+    );
+
+  const {data,error}=
+    await supabaseClient
+    .from("materials")
+    .select("*")
+    .order("created_at",{ascending:true});
+
+  if(error){
+
+    console.error("Materials:",error);
+    alert(t("loadError"));
+    return;
+  }
+
+
+  /*
+    نقل البيانات المحلية القديمة
+    إذا كان جدول Supabase فارغاً
+  */
+
+  if((data || []).length===0 && oldMaterials.length>0){
+
+    const rows=
+      oldMaterials.map(material=>({
+
+        id:String(material.id),
+
+        name:material.name || "",
+
+        quantity:
+          Number(material.quantity) || 0,
+
+        unit:
+          material.unit || "piece",
+
+        minimum:
+          Number(material.minimum) || 0,
+
+        notes:
+          material.notes || "",
+
+        history:
+          Array.isArray(material.history)
+          ? material.history
+          : []
+
+      }));
+
+
+    const {error:migrationError}=
+      await supabaseClient
+      .from("materials")
+      .upsert(rows,{onConflict:"id"});
+
+
+    if(migrationError){
+
+      console.error(
+        "Material migration:",
+        migrationError
+      );
+
+      alert(t("saveError"));
+      return;
+    }
+
+
+    const reload=
+      await supabaseClient
+      .from("materials")
+      .select("*")
+      .order("created_at",{ascending:true});
+
+
+    if(reload.error){
+
+      console.error(reload.error);
+      alert(t("loadError"));
+      return;
+    }
+
+
+    materials=
+      (reload.data || []).map(row=>({
+
+        id:String(row.id),
+        name:row.name || "",
+        quantity:Number(row.quantity) || 0,
+        unit:row.unit || "piece",
+        minimum:Number(row.minimum) || 0,
+        notes:row.notes || "",
+        history:Array.isArray(row.history)
+          ? row.history
+          : []
+
+      }));
+
+  }else{
+
+    materials=
+      (data || []).map(row=>({
+
+        id:String(row.id),
+        name:row.name || "",
+        quantity:Number(row.quantity) || 0,
+        unit:row.unit || "piece",
+        minimum:Number(row.minimum) || 0,
+        notes:row.notes || "",
+        history:Array.isArray(row.history)
+          ? row.history
+          : []
+
+      }));
+  }
+
+
+  mirrorMaterialsLocally();
+
+  updateLanguage();
+}
+
+
+/* =========================
+   اللغة
+========================= */
+
+function updateLanguage(){
+
+  document.documentElement.lang=language;
+
+  document.documentElement.dir=
+    language==="ar" ? "rtl":"ltr";
+
+  document.getElementById("pageTitle").textContent=
+    t("title");
+
+  document.getElementById("backBtn").textContent=
+    t("back");
+
+  document.getElementById("languageBtn").textContent=
+    t("language");
+
+  document.getElementById("addTitle").textContent=
+    t("addTitle");
+
+  document.getElementById("nameLabel").textContent=
+    t("name");
+
+  document.getElementById("quantityLabel").textContent=
+    t("quantity");
+
+  document.getElementById("unitLabel").textContent=
+    t("unit");
+
+  document.getElementById("minimumLabel").textContent=
+    t("minimum");
+
+  document.getElementById("notesLabel").textContent=
+    t("notes");
+
+  document.getElementById("materialName").placeholder=
+    t("namePlaceholder");
+
+  document.getElementById("materialNotes").placeholder=
+    t("notesPlaceholder");
+
+  document.getElementById("saveButton").textContent=
+    editingMaterialId
+    ? t("saveChanges")
+    : t("addMaterial");
+
+  document.getElementById("cancelButton").textContent=
+    t("cancel");
+
+  document.getElementById("unitPiece").textContent=t("piece");
+  document.getElementById("unitLiter").textContent=t("liter");
+  document.getElementById("unitKg").textContent=t("kg");
+  document.getElementById("unitBox").textContent=t("box");
+  document.getElementById("unitCarton").textContent=t("carton");
+  document.getElementById("unitRoll").textContent=t("roll");
+  document.getElementById("unitBag").textContent=t("bag");
+
+  document.getElementById("statsTitle").textContent=
+    t("stats");
+
+  document.getElementById("totalMaterialsText").textContent=
+    t("materialsCount");
+
+  document.getElementById("totalQuantityText").textContent=
+    t("totalQuantity");
+
+  document.getElementById("lowMaterialsText").textContent=
+    t("lowMaterials");
+
+  document.getElementById("listTitle").textContent=
+    t("list");
+
+  document.getElementById("movementTitle").textContent=
+    t("movement");
+
+  document.getElementById("movementTypeLabel").textContent=
+    t("movementType");
+
+  document.getElementById("movementQuantityLabel").textContent=
+    t("movementQuantity");
+
+  document.getElementById("reasonLabel").textContent=
+    t("reason");
+
+  document.getElementById("movementQuantity").placeholder=
+    t("quantityPlaceholder");
+
+  document.getElementById("movementReason").placeholder=
+    t("reasonPlaceholder");
+
+  document.getElementById("movementAdd").textContent=
+    t("add");
+
+  document.getElementById("movementRemove").textContent=
+    t("remove");
+
+  document.getElementById("saveMovementButton").textContent=
+    t("saveMovement");
+
+  document.getElementById("closeMovementButton").textContent=
+    t("close");
+
+  renderMaterials();
+}
+
+
+function toggleLanguage(){
+
+  language=
+    language==="ar" ? "de":"ar";
+
+  localStorage.setItem(
+    "appLanguage",
+    language
+  );
+
+  updateLanguage();
+}
+
+
+function getUnitText(unit){
+  return translations[language][unit] || unit;
+}/* =========================
+   إضافة / تعديل المادة
+========================= */
+
+async function saveMaterial(){
+
+  const name=
+    document.getElementById("materialName")
+    .value.trim();
+
+  const quantity=
+    Number(
+      document.getElementById("materialQuantity").value
+    );
+
+  const unit=
+    document.getElementById("materialUnit").value;
+
+  const minimum=
+    Number(
+      document.getElementById("minimumQuantity").value || 0
+    );
+
+  const notes=
+    document.getElementById("materialNotes")
+    .value.trim();
+
+
+  if(!name){
+    alert(t("enterName"));
+    return;
+  }
+
+  if(!Number.isFinite(quantity) || quantity<0){
+    alert(t("enterQuantity"));
+    return;
+  }
+
+
+  if(editingMaterialId){
+
+    const {error}=
+      await supabaseClient
+      .from("materials")
+      .update({
+        name:name,
+        quantity:quantity,
+        unit:unit,
+        minimum:minimum,
+        notes:notes
+      })
+      .eq("id",String(editingMaterialId));
+
+
+    if(error){
+      console.error(error);
+      alert(t("saveError"));
+      return;
+    }
+
+    alert(t("materialUpdated"));
+
+  }else{
+
+    const materialId=newId();
+
+    const {error}=
+      await supabaseClient
+      .from("materials")
+      .insert({
+        id:materialId,
+        name:name,
+        quantity:quantity,
+        unit:unit,
+        minimum:minimum,
+        notes:notes,
+        history:[]
+      });
+
+
+    if(error){
+      console.error(error);
+      alert(t("saveError"));
+      return;
+    }
+
+    alert(t("materialAdded"));
+  }
+
+
+  resetForm();
+
+  await loadMaterials();
+}
+
+
+/* =========================
+   تعديل المادة
+========================= */
+
+function editMaterial(id){
+
+  const material=
+    materials.find(
+      x=>String(x.id)===String(id)
+    );
+
+  if(!material)return;
+
+  editingMaterialId=String(id);
+
+  document.getElementById("materialName").value=
+    material.name || "";
+
+  document.getElementById("materialQuantity").value=
+    material.quantity || 0;
+
+  document.getElementById("materialUnit").value=
+    material.unit || "piece";
+
+  document.getElementById("minimumQuantity").value=
+    material.minimum || 0;
+
+  document.getElementById("materialNotes").value=
+    material.notes || "";
+
+  document.getElementById("cancelButton")
+    .classList.remove("hidden");
+
+  updateLanguage();
+
+  window.scrollTo({
+    top:0,
+    behavior:"smooth"
+  });
+}
+
+
+/* =========================
+   حذف المادة
+========================= */
+
+async function deleteMaterial(id){
+
+  if(!confirm(t("confirmDelete")))return;
+
+  const {error}=
+    await supabaseClient
+    .from("materials")
+    .delete()
+    .eq("id",String(id));
+
+
+  if(error){
+    console.error(error);
+    alert(t("deleteError"));
+    return;
+  }
+
+
+  alert(t("materialDeleted"));
+
+  await loadMaterials();
+}
+
+
+/* =========================
+   إعادة النموذج
+========================= */
+
+function resetForm(){
+
+  editingMaterialId=null;
+
+  document.getElementById("materialName").value="";
+
+  document.getElementById("materialQuantity").value="0";
+
+  document.getElementById("materialUnit").value="piece";
+
+  document.getElementById("minimumQuantity").value="0";
+
+  document.getElementById("materialNotes").value="";
+
+  document.getElementById("cancelButton")
+    .classList.add("hidden");
+
+  updateLanguage();
+}
+
+
+function cancelEdit(){
+  resetForm();
+}
+
+
+/* =========================
+   حركة المخزون
+========================= */
+
+function openMovement(id){
+
+  const material=
+    materials.find(
+      x=>String(x.id)===String(id)
+    );
+
+  if(!material)return;
+
+  selectedMaterialId=String(id);
+
+  document.getElementById("movementCard")
+    .classList.remove("hidden");
+
+
+  document.getElementById("selectedMaterialName")
+    .innerHTML=
+
+    "<strong>"+
+    escapeHtml(material.name)+
+    "</strong> — "+
+    escapeHtml(material.quantity)+
+    " "+
+    escapeHtml(getUnitText(material.unit));
+
+
+  document.getElementById("movementType").value=
+    "add";
+
+  document.getElementById("movementQuantity").value=
+    "";
+
+  document.getElementById("movementReason").value=
+    "";
+
+
+  document.getElementById("movementCard")
+    .scrollIntoView({
+      behavior:"smooth"
+    });
+}
+
+
+function closeMovement(){
+
+  selectedMaterialId=null;
+
+  document.getElementById("movementCard")
+    .classList.add("hidden");
+}
+
+
+/* =========================
+   حفظ حركة المخزون
+========================= */
+
+async function saveMovement(){
+
+  if(!selectedMaterialId)return;
+
+
+  const material=
+    materials.find(
+      x=>String(x.id)===String(selectedMaterialId)
+    );
+
+  if(!material)return;
+
+
+  const type=
+    document.getElementById("movementType").value;
+
+  const quantity=
+    Number(
+      document.getElementById("movementQuantity").value
+    );
+
+  const reason=
+    document.getElementById("movementReason")
+    .value.trim();
+
+
+  if(!Number.isFinite(quantity) || quantity<=0){
+
+    alert(t("enterMovementQuantity"));
+    return;
+  }
+
+
+  if(
+    type==="remove" &&
+    quantity>Number(material.quantity || 0)
+  ){
+
+    alert(t("insufficient"));
+    return;
+  }
+
+
+  let newQuantity=
+    Number(material.quantity || 0);
+
+
+  if(type==="add"){
+    newQuantity+=quantity;
+  }else{
+    newQuantity-=quantity;
+  }
+
+
+  const history=
+    Array.isArray(material.history)
+    ? [...material.history]
+    : [];
+
+
+  history.unshift({
+
+    id:newId(),
+
+    type:type,
+
+    quantity:quantity,
+
+    reason:reason,
+
+    date:new Date().toISOString()
+
+  });
+
+
+  const {error}=
+    await supabaseClient
+    .from("materials")
+    .update({
+
+      quantity:newQuantity,
+
+      history:history
+
+    })
+    .eq("id",String(selectedMaterialId));
+
+
+  if(error){
+
+    console.error(error);
+
+    alert(t("saveError"));
+
+    return;
+  }
+
+
+  alert(t("movementSaved"));
+
+  closeMovement();
+
+  await loadMaterials();
+}
+
+
+/* =========================
+   التاريخ
+========================= */
+
+function formatDate(date){
+
+  if(!date)return "";
+
+  const d=new Date(date);
+
+  if(Number.isNaN(d.getTime())){
+    return "";
+  }
+
+  return d.toLocaleString(
+    language==="ar"
+    ? "ar"
+    : "de-DE"
+  );
+}
+
+
+/* =========================
+   سجل الحركات
+========================= */
+
+function renderHistory(material){
+
+  const history=
+    material.history || [];
+
+
+  if(!history.length){
+
+    return `
+      <div class="empty">
+        ${t("noHistory")}
+      </div>
+    `;
+  }
+
+
+  return history
+  .slice(0,10)
+  .map(item=>{
+
+    const typeText=
+      item.type==="add"
+      ? t("added")
+      : t("removed");
+
+    const sign=
+      item.type==="add"
+      ? "+"
+      : "-";
+
+
+    return `
+
+      <div class="history-item">
+
+        <strong>
+          ${escapeHtml(typeText)}
+        </strong>
+
+        :
+
+        ${sign}${escapeHtml(item.quantity)}
+
+        ${escapeHtml(
+          getUnitText(material.unit)
+        )}
+
+        <br>
+
+        <small>
+          ${escapeHtml(
+            formatDate(item.date)
+          )}
+        </small>
+
+        ${
+          item.reason
+          ?
+          `<br>${escapeHtml(item.reason)}`
+          :
+          ""
+        }
+
+      </div>
+
+    `;
+
+  }).join("");
+}
+
+
+/* =========================
+   عرض المواد
+========================= */
+
+function renderMaterials(){
+
+  const list=
+    document.getElementById("materialsList");
+
+
+  if(!materials.length){
+
+    list.innerHTML=
+      `<div class="empty">
+        ${t("noMaterials")}
+      </div>`;
+
+  }else{
+
+    list.innerHTML=
+      materials.map(material=>{
+
+        const quantity=
+          Number(material.quantity || 0);
+
+        const minimum=
+          Number(material.minimum || 0);
+
+        const low=
+          quantity<=minimum;
+
+        const materialId=
+          JSON.stringify(String(material.id));
+
+
+        return `
+
+          <div class="material ${low ? "low":""}">
+
+            <div class="material-name">
+              ${escapeHtml(material.name)}
+            </div>
+
+
+            <div>
+
+              <span class="badge">
+
+                ${t("currentStock")}:
+
+                <strong>
+                  ${escapeHtml(quantity)}
+                </strong>
+
+                ${escapeHtml(
+                  getUnitText(material.unit)
+                )}
+
+              </span>
+
+
+              <span class="badge">
+
+                ${t("minimumStock")}:
+
+                ${escapeHtml(minimum)}
+
+                ${escapeHtml(
+                  getUnitText(material.unit)
+                )}
+
+              </span>
+
+
+              <span class="${
+                low
+                ? "badge badge-orange"
+                : "badge badge-green"
+              }">
+
+                ${
+                  low
+                  ? t("lowStock")
+                  : t("normalStock")
+                }
+
+              </span>
+
+            </div>
+
+
+            ${
+              material.notes
+              ?
+              `
+              <div class="info">
+
+                <strong>
+                  ${t("notes")}:
+                </strong>
+
+                ${escapeHtml(material.notes)}
+
+              </div>
+              `
+              :
+              ""
+            }
+
+
+            <div>
+
+              <button
+                class="btn-small btn-add"
+                onclick='openMovement(${materialId})'>
+
+                ${t("movement")}
+
+              </button>
+
+
+              <button
+                class="btn-small btn-edit"
+                onclick='editMaterial(${materialId})'>
+
+                ${t("edit")}
+
+              </button>
+
+
+              <button
+                class="btn-small btn-delete"
+                onclick='deleteMaterial(${materialId})'>
+
+                ${t("delete")}
+
+              </button>
+
+            </div>
+
+
+            <div class="history">
+
+              <strong>
+                ${t("history")}
+              </strong>
+
+              ${renderHistory(material)}
+
+            </div>
+
+          </div>
+
+        `;
+
+      }).join("");
+  }
+
+
+  const lowCount=
+    materials.filter(material=>
+
+      Number(material.quantity || 0)
+      <=
+      Number(material.minimum || 0)
+
+    ).length;
+
+
+  const totalQuantity=
+    materials.reduce(
+      (sum,material)=>
+        sum+
+        Number(material.quantity || 0),
+      0
+    );
+
+
+  document.getElementById("totalMaterials")
+    .textContent=
+    materials.length;
+
+
+  document.getElementById("totalQuantity")
+    .textContent=
+    totalQuantity;
+
+
+  document.getElementById("lowMaterials")
+    .textContent=
+    lowCount;
+
+
+  const warning=
+    document.getElementById("lowStockWarning");
+
+
+  if(lowCount>0){
+
+    warning.textContent=
+      t("lowWarning");
+
+    warning.classList.remove("hidden");
+
+  }else{
+
+    warning.classList.add("hidden");
+  }
+}
+
+
+/* =========================
+   الرئيسية
+========================= */
+
+function goHome(){
+  window.location.href="index.html";
+}
+
+
+/* =========================
+   تشغيل الصفحة
+========================= */
+
+async function startPage(){
+
+  const {
+    data:{session},
+    error
+  }=
+  await supabaseClient.auth.getSession();
+
+
+  if(error || !session){
+
+    window.location.href="login.html";
+
+    return;
+  }
+
+
+  await loadMaterials();
+}
+
+
+startPage();
+
+</script>
+
+</body>
+</html>

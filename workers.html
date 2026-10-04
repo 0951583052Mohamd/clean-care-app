@@ -1,0 +1,1829 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Clean & Care - العمال</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Tahoma,sans-serif;background:#f4f6f8;color:#222}
+header{background:#1f2937;color:white;padding:18px}
+.header-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+h1{margin:0;font-size:24px}
+.buttons{display:flex;gap:8px;flex-wrap:wrap}
+button{border:0;border-radius:8px;padding:10px 14px;cursor:pointer;font-size:14px;background:#2563eb;color:white}
+button:hover{opacity:.9}
+.back{background:#4b5563}
+.lang{background:#6b7280}
+.green{background:#16a34a}
+.red{background:#dc2626}
+.orange{background:#ea580c}
+.container{max-width:1200px;margin:20px auto;padding:0 15px}
+.box{background:white;border-radius:14px;padding:20px;margin-bottom:20px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.box h2{margin-top:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px}
+input,select,textarea{width:100%;padding:11px;border:1px solid #d1d5db;border-radius:8px;font-size:15px;background:white}
+textarea{min-height:90px;resize:vertical}
+label{display:block;margin-bottom:6px;font-weight:bold}
+.field{margin-bottom:14px}
+.worker-card,.assignment-card{border:1px solid #e5e7eb;border-radius:12px;padding:15px;margin-bottom:12px;background:#fff}
+.worker-card h3,.assignment-card h3{margin-top:0}
+.worker-photo{width:70px;height:70px;object-fit:cover;border-radius:50%;display:block;margin-bottom:10px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.stat{background:white;padding:18px;border-radius:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.stat strong{display:block;font-size:25px;margin-top:5px}
+.rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:10px}
+.room{border:1px solid #d1d5db;padding:10px;border-radius:8px;background:#f9fafb}
+.room input{width:auto;margin-left:6px}
+.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+.badge{display:inline-block;padding:5px 9px;border-radius:20px;font-size:12px;background:#e5e7eb}
+.done{background:#dcfce7;color:#166534}
+.notdone{background:#fee2e2;color:#991b1b}
+.info{background:#eff6ff;border:1px solid #bfdbfe;padding:12px;border-radius:8px;margin-bottom:15px}
+.hidden{display:none!important}
+.empty{text-align:center;color:#777;padding:25px}
+.material-result{margin-top:10px;padding:12px;border-radius:8px;background:#f0fdf4;color:#166534}
+.hours-box{border:2px solid #dbeafe}
+.hours-summary{margin-top:10px}
+
+@media(max-width:600px){
+.container{padding:0 10px}
+.buttons{width:100%}
+.buttons button{flex:1}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<div class="header-top">
+<h1 id="pageTitle">العمال</h1>
+
+<div class="buttons">
+<button class="back" onclick="goHome()" id="backButton">الرئيسية</button>
+<button class="lang" onclick="toggleLanguage()" id="languageButton">Deutsch</button>
+</div>
+</div>
+</header>
+
+<div class="container">
+
+<div class="stats">
+<div class="stat"><span id="statWorkersText">عدد العمال</span><strong id="statWorkers">0</strong></div>
+<div class="stat"><span id="statAssignmentsText">المهام</span><strong id="statAssignments">0</strong></div>
+<div class="stat"><span id="statCompletedText">منجزة</span><strong id="statCompleted">0</strong></div>
+<div class="stat"><span id="statHoursText">الساعات</span><strong id="statHours">0</strong></div>
+</div>
+
+<div class="box hours-box">
+<h2 id="hoursReportTitle">حساب الساعات</h2>
+
+<div class="grid">
+<div class="field">
+<label id="hoursWorkerLabel">العامل</label>
+<select id="hoursWorkerFilter" onchange="renderHoursReport()">
+<option value="">كل العمال</option>
+</select>
+</div>
+
+<div class="field">
+<label id="hoursHotelLabel">الفندق</label>
+<select id="hoursHotelFilter" onchange="renderHoursReport()">
+<option value="">كل الفنادق</option>
+</select>
+</div>
+</div>
+
+<div class="stats hours-summary">
+<div class="stat"><span id="workerTotalHoursText">ساعات العامل</span><strong id="workerTotalHours">0</strong></div>
+<div class="stat"><span id="hotelTotalHoursText">ساعات الفندق</span><strong id="hotelTotalHours">0</strong></div>
+<div class="stat"><span id="workerHotelTotalHoursText">ساعات العامل في الفندق</span><strong id="workerHotelTotalHours">0</strong></div>
+</div>
+
+<div id="hoursReportDetails" class="info">لا توجد ساعات مسجلة.</div>
+</div>
+
+<div class="box">
+<h2 id="addWorkerTitle">إضافة عامل</h2>
+
+<div class="grid">
+<div class="field">
+<label id="nameLabel">اسم العامل</label>
+<input id="workerName" type="text">
+</div>
+
+<div class="field">
+<label id="phoneLabel">رقم الهاتف</label>
+<input id="workerPhone" type="text">
+</div>
+
+<div class="field">
+<label id="photoLabel">صورة العامل</label>
+<input id="workerPhoto" type="file" accept="image/*">
+</div>
+</div>
+
+<div class="actions">
+<button class="green" onclick="saveWorker()" id="saveWorkerButton">حفظ العامل</button>
+<button class="orange hidden" onclick="cancelWorkerEdit()" id="cancelWorkerButton">إلغاء</button>
+</div>
+</div>
+
+<div class="box">
+<h2 id="workersListTitle">العمال</h2>
+<div id="workersList"></div>
+</div>
+
+<div class="box">
+<h2 id="assignmentTitle">إضافة مهمة للعامل</h2>
+
+<div class="info" id="materialInfo">
+بعد إنهاء العمل، سيتم حساب المواد تلقائياً حسب قواعد المواد وخصمها من المخزون.
+</div>
+
+<div class="grid">
+
+<div class="field">
+<label id="workerSelectLabel">العامل</label>
+<select id="assignmentWorker">
+<option value="">اختر العامل</option>
+</select>
+</div>
+
+<div class="field">
+<label id="hotelSelectLabel">الفندق</label>
+<select id="assignmentHotel" onchange="loadHotelRooms()">
+<option value="">اختر الفندق</option>
+</select>
+</div>
+
+<div class="field">
+<label id="dateLabel">التاريخ</label>
+<input id="assignmentDate" type="date">
+</div>
+
+<div class="field">
+<label id="startLabel">وقت البداية</label>
+<input id="assignmentStart" type="time">
+</div>
+
+<div class="field">
+<label id="endLabel">وقت النهاية</label>
+<input id="assignmentEnd" type="time">
+</div>
+
+<div class="field">
+<label id="roomCountLabel">عدد الغرف</label>
+<input id="roomCount" type="number" readonly value="0">
+</div>
+
+</div>
+
+<div class="field">
+<label id="roomsLabel">الغرف</label>
+<div id="roomsContainer" class="rooms">
+<div class="empty">اختر الفندق أولاً</div>
+</div>
+</div>
+
+<div class="field">
+<label id="tasksLabel">المهام</label>
+<textarea id="assignmentTasks"></textarea>
+</div>
+
+<div class="actions">
+<button class="green" onclick="saveAssignment()" id="saveAssignmentButton">حفظ المهمة</button>
+<button class="orange hidden" onclick="cancelAssignmentEdit()" id="cancelAssignmentButton">إلغاء</button>
+</div>
+</div>
+
+<div class="box">
+<h2 id="assignmentsListTitle">المهام المسجلة</h2>
+<div id="assignmentsList"></div>
+</div>
+
+</div>
+
+<script>
+
+const SUPABASE_URL="https://vjllurkvzvumsfjxuxuz.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_4TiwsqWNph3wQzdoASlasg_gh4x1Atz";
+
+const supabaseClient=window.supabase.createClient(
+SUPABASE_URL,
+SUPABASE_PUBLISHABLE_KEY
+);
+
+let language=localStorage.getItem("appLanguage") || "ar";
+
+let workers=[];
+let hotels=[];
+let assignments=[];
+let trips=[];
+let materials=[];
+let materialRules=[];
+
+let editingWorkerId=null;
+let editingAssignmentId=null;
+
+const text={
+ar:{
+pageTitle:"العمال",back:"الرئيسية",language:"Deutsch",
+statWorkers:"عدد العمال",statAssignments:"المهام",statCompleted:"منجزة",statHours:"الساعات",
+hoursReport:"حساب الساعات",hoursWorker:"العامل",hoursHotel:"الفندق",
+allWorkers:"كل العمال",allHotels:"كل الفنادق",
+workerTotalHours:"ساعات العامل",hotelTotalHours:"ساعات الفندق",
+workerHotelTotalHours:"ساعات العامل في الفندق",noHours:"لا توجد ساعات مسجلة.",
+addWorker:"إضافة عامل",name:"اسم العامل",phone:"رقم الهاتف",photo:"صورة العامل",
+saveWorker:"حفظ العامل",edit:"تعديل",delete:"حذف",cancel:"إلغاء",workersList:"العمال",
+assignmentTitle:"إضافة مهمة للعامل",
+materialInfo:"بعد إنهاء العمل، سيتم حساب المواد تلقائياً حسب قواعد المواد وخصمها من المخزون.",
+worker:"العامل",hotel:"الفندق",chooseWorker:"اختر العامل",chooseHotel:"اختر الفندق",
+date:"التاريخ",start:"وقت البداية",end:"وقت النهاية",roomCount:"عدد الغرف",
+rooms:"الغرف",tasks:"المهام",chooseHotelFirst:"اختر الفندق أولاً",
+saveAssignment:"حفظ المهمة",assignmentsList:"المهام المسجلة",
+completed:"منجزة",notCompleted:"غير منجزة",finishWork:"إنهاء العمل",
+workFinished:"تم إنهاء العمل",materialsDeducted:"تم خصم المواد من المخزون",
+alreadyDeducted:"تم خصم المواد مسبقاً",editAssignment:"تعديل",
+deleteAssignment:"حذف",noWorkers:"لا يوجد عمال.",noAssignments:"لا توجد مهام.",
+confirmDeleteWorker:"هل تريد حذف هذا العامل؟",
+confirmDeleteAssignment:"هل تريد حذف هذه المهمة؟",
+noWorker:"يرجى اختيار العامل.",noHotel:"يرجى اختيار الفندق.",
+noDate:"يرجى اختيار التاريخ.",noRooms:"يرجى اختيار غرفة واحدة على الأقل.",
+insufficient:"المخزون غير كافٍ لبعض المواد:",
+noRule:"لا توجد قاعدة مواد لهذا النوع من الغرف.",roomType:"أشخاص",hours:"ساعة"
+},
+de:{
+pageTitle:"Mitarbeiter",back:"Startseite",language:"العربية",
+statWorkers:"Mitarbeiter",statAssignments:"Aufgaben",statCompleted:"Erledigt",statHours:"Stunden",
+hoursReport:"Stundenberechnung",hoursWorker:"Mitarbeiter",hoursHotel:"Hotel",
+allWorkers:"Alle Mitarbeiter",allHotels:"Alle Hotels",
+workerTotalHours:"Arbeitsstunden des Mitarbeiters",hotelTotalHours:"Arbeitsstunden im Hotel",
+workerHotelTotalHours:"Stunden des Mitarbeiters im Hotel",noHours:"Keine Stunden vorhanden.",
+addWorker:"Mitarbeiter hinzufügen",name:"Name",phone:"Telefonnummer",photo:"Foto",
+saveWorker:"Mitarbeiter speichern",edit:"Bearbeiten",delete:"Löschen",cancel:"Abbrechen",
+workersList:"Mitarbeiter",assignmentTitle:"Aufgabe hinzufügen",
+materialInfo:"Nach Abschluss der Arbeit werden die Materialien automatisch anhand der Materialregeln berechnet und vom Lager abgezogen.",
+worker:"Mitarbeiter",hotel:"Hotel",chooseWorker:"Mitarbeiter auswählen",chooseHotel:"Hotel auswählen",
+date:"Datum",start:"Startzeit",end:"Endzeit",roomCount:"Zimmeranzahl",
+rooms:"Zimmer",tasks:"Aufgaben",chooseHotelFirst:"Bitte zuerst ein Hotel auswählen",
+saveAssignment:"Aufgabe speichern",assignmentsList:"Gespeicherte Aufgaben",
+completed:"Erledigt",notCompleted:"Nicht erledigt",finishWork:"Arbeit abschließen",
+workFinished:"Arbeit abgeschlossen",materialsDeducted:"Materialien wurden vom Lager abgezogen",
+alreadyDeducted:"Material wurde bereits abgezogen",editAssignment:"Bearbeiten",
+deleteAssignment:"Löschen",noWorkers:"Keine Mitarbeiter vorhanden.",noAssignments:"Keine Aufgaben vorhanden.",
+confirmDeleteWorker:"Möchten Sie diesen Mitarbeiter löschen?",
+confirmDeleteAssignment:"Möchten Sie diese Aufgabe löschen?",
+noWorker:"Bitte Mitarbeiter auswählen.",noHotel:"Bitte Hotel auswählen.",
+noDate:"Bitte Datum auswählen.",noRooms:"Bitte mindestens ein Zimmer auswählen.",
+insufficient:"Der Lagerbestand reicht für einige Materialien nicht aus:",
+noRule:"Keine Materialregel für diesen Zimmertyp vorhanden.",roomType:"Personen",hours:"Stunden"
+}
+};
+
+function t(key){
+return text[language][key] || key;
+}
+
+function escapeHtml(value){
+return String(value ?? "")
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;")
+.replace(/"/g,"&quot;")
+.replace(/'/g,"&#039;");
+}
+
+function id(){
+return Date.now().toString()+Math.random().toString(16).slice(2);
+}
+
+function assignmentFromDatabase(row){
+return {
+id:String(row.id),
+workerId:String(row.worker_id || ""),
+hotelId:String(row.hotel_id || ""),
+date:row.date || "",
+start:row.start_time || "",
+end:row.end_time || "",
+rooms:Array.isArray(row.rooms) ? row.rooms : [],
+roomCount:Number(row.room_count || 0),
+tasks:row.tasks || "",
+completed:Boolean(row.completed),
+materialDeducted:Boolean(row.material_deducted),
+materialDeduction:row.material_deduction || null,
+delay:Number(row.delay || 0)
+};
+}
+
+function assignmentToDatabase(item){
+return {
+id:String(item.id),
+worker_id:String(item.workerId || ""),
+hotel_id:String(item.hotelId || ""),
+date:item.date || "",
+start_time:item.start || "",
+end_time:item.end || "",
+rooms:Array.isArray(item.rooms) ? item.rooms : [],
+room_count:Number(item.roomCount || 0),
+tasks:item.tasks || "",
+completed:Boolean(item.completed),
+material_deducted:Boolean(item.materialDeducted),
+material_deduction:item.materialDeduction || null,
+delay:Number(item.delay || 0)
+};
+}
+
+function mirrorAssignmentsLocally(){
+localStorage.setItem("hotelAssignments",JSON.stringify(assignments));
+}
+
+async function loadWorkers(){
+
+const {data,error}=await supabaseClient
+.from("workers")
+.select("id,name,phone,photo")
+.order("created_at",{ascending:true});
+
+if(error){
+console.error(error);
+alert("تعذر تحميل العمال من قاعدة البيانات.");
+return;
+}
+
+workers=(data || []).map(worker=>({
+...worker,
+id:String(worker.id)
+}));
+
+localStorage.setItem("workers",JSON.stringify(workers));
+}
+
+async function loadHotels(){
+
+const {data,error}=await supabaseClient
+.from("hotels")
+.select("*")
+.order("created_at",{ascending:true});
+
+if(error){
+console.error(error);
+alert("تعذر تحميل الفنادق من قاعدة البيانات.");
+return;
+}
+
+hotels=(data || []).map(hotel=>({
+...hotel,
+id:String(hotel.id),
+rooms:Array.isArray(hotel.rooms) ? hotel.rooms : []
+}));
+
+localStorage.setItem("hotels",JSON.stringify(hotels));
+}
+
+async function loadMaterials(){
+
+const {data,error}=await supabaseClient
+.from("materials")
+.select("*")
+.order("created_at",{ascending:true});
+
+if(error){
+console.error(error);
+return;
+}
+
+materials=(data || []).map(item=>({
+...item,
+id:String(item.id)
+}));
+
+localStorage.setItem("materials",JSON.stringify(materials));
+}
+
+async function loadMaterialRules(){
+
+const {data,error}=await supabaseClient
+.from("material_rules")
+.select("*")
+.order("created_at",{ascending:true});
+
+if(error){
+console.error(error);
+return;
+}
+
+materialRules=(data || []).map(row=>({
+id:String(row.id),
+nameAr:row.name_ar || "",
+nameDe:row.name_de || "",
+workType:row.work_type || "room",
+roomType:row.room_type || "",
+items:Array.isArray(row.items)
+? row.items.map(item=>({
+...item,
+materialId:String(item.materialId ?? item.material_id ?? "")
+}))
+: []
+}));
+
+localStorage.setItem("materialRules",JSON.stringify(materialRules));
+}
+
+async function loadTrips(){
+
+const {data,error}=await supabaseClient
+.from("trips")
+.select("*");
+
+if(error){
+console.error(error);
+trips=[];
+return;
+}
+
+trips=(data || []).map(row=>({
+id:String(row.id),
+trainNumber:row.trip_number || "",
+date:row.date || "",
+time:row.time || "",
+workerId:row.worker_id ? String(row.worker_id) : "",
+worker1Id:row.worker1_id ? String(row.worker1_id) : "",
+worker2Id:row.worker2_id ? String(row.worker2_id) : "",
+workerIds:Array.isArray(row.worker_ids)
+? row.worker_ids.map(String)
+: [],
+duration:Number(row.duration || 0),
+delay:Number(row.delay || 0),
+status:row.status || "",
+notes:row.notes || ""
+}));
+
+localStorage.setItem("trips",JSON.stringify(trips));
+}
+
+async function loadAssignments(){
+
+let oldAssignments=[];
+
+try{
+oldAssignments=JSON.parse(
+localStorage.getItem("hotelAssignments") || "[]"
+);
+if(!Array.isArray(oldAssignments))oldAssignments=[];
+}catch(e){
+oldAssignments=[];
+}
+
+const {data,error}=await supabaseClient
+.from("hotel_assignments")
+.select("*")
+.order("created_at",{ascending:true});
+
+if(error){
+console.error(error);
+alert("تعذر تحميل مهام الفنادق.");
+return;
+}
+
+let rows=data || [];
+
+if(rows.length===0 && oldAssignments.length>0){
+
+const migrationRows=oldAssignments.map(item=>
+assignmentToDatabase({
+...item,
+id:String(item.id || id())
+})
+);
+
+const {error:migrationError}=await supabaseClient
+.from("hotel_assignments")
+.upsert(migrationRows);
+
+if(migrationError){
+console.error(migrationError);
+alert("تعذر نقل مهام الفنادق القديمة.");
+return;
+}
+
+const reload=await supabaseClient
+.from("hotel_assignments")
+.select("*")
+.order("created_at",{ascending:true});
+
+if(reload.error){
+console.error(reload.error);
+return;
+}
+
+rows=reload.data || [];
+}
+
+assignments=rows.map(assignmentFromDatabase);
+mirrorAssignmentsLocally();
+}
+
+async function saveWorker(){
+
+const name=document.getElementById("workerName").value.trim();
+const phone=document.getElementById("workerPhone").value.trim();
+const file=document.getElementById("workerPhoto").files[0];
+
+if(!name){
+alert(t("name"));
+return;
+}
+
+let photo="";
+
+if(editingWorkerId){
+const oldWorker=workers.find(
+w=>String(w.id)===String(editingWorkerId)
+);
+photo=oldWorker?.photo || "";
+}
+
+if(file){
+photo=await readPhoto(file);
+}
+
+if(editingWorkerId){
+
+const {error}=await supabaseClient
+.from("workers")
+.update({
+name:name,
+phone:phone,
+photo:photo || null
+})
+.eq("id",String(editingWorkerId));
+
+if(error){
+console.error(error);
+alert("تعذر تعديل العامل.");
+return;
+}
+
+}else{
+
+const {error}=await supabaseClient
+.from("workers")
+.insert({
+id:id(),
+name:name,
+phone:phone,
+photo:photo || null
+});
+
+if(error){
+console.error(error);
+alert("تعذر حفظ العامل.");
+return;
+}
+}
+
+clearWorkerForm();
+await loadWorkers();
+renderAll();
+}
+
+function readPhoto(file){
+return new Promise((resolve,reject)=>{
+const reader=new FileReader();
+reader.onload=e=>resolve(e.target.result);
+reader.onerror=reject;
+reader.readAsDataURL(file);
+});
+}
+
+function editWorker(workerId){
+
+const worker=workers.find(
+w=>String(w.id)===String(workerId)
+);
+
+if(!worker)return;
+
+editingWorkerId=String(workerId);
+
+document.getElementById("workerName").value=worker.name || "";
+document.getElementById("workerPhone").value=worker.phone || "";
+
+document.getElementById("cancelWorkerButton")
+.classList.remove("hidden");
+
+applyLanguage();
+
+window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function cancelWorkerEdit(){
+clearWorkerForm();
+applyLanguage();
+}
+
+function clearWorkerForm(){
+
+editingWorkerId=null;
+
+document.getElementById("workerName").value="";
+document.getElementById("workerPhone").value="";
+document.getElementById("workerPhoto").value="";
+
+document.getElementById("cancelWorkerButton")
+.classList.add("hidden");
+}
+
+async function deleteWorker(workerId){
+
+if(!confirm(t("confirmDeleteWorker")))return;
+
+const hasAssignments=assignments.some(
+a=>String(a.workerId)===String(workerId)
+);
+
+if(hasAssignments){
+alert(
+language==="ar"
+? "لا يمكن حذف العامل لأنه مرتبط بمهام فندق مسجلة."
+: "Der Mitarbeiter kann nicht gelöscht werden, da Hotelaufgaben vorhanden sind."
+);
+return;
+}
+
+const {error}=await supabaseClient
+.from("workers")
+.delete()
+.eq("id",String(workerId));
+
+if(error){
+console.error(error);
+alert("تعذر حذف العامل.");
+return;
+}
+
+await loadWorkers();
+renderAll();
+}
+
+async function syncAssignmentsWithServer(){
+
+try{
+
+const serverAssignments=assignments.map(assignment=>{
+
+const worker=workers.find(
+w=>String(w.id)===String(assignment.workerId)
+);
+
+const hotel=hotels.find(
+h=>String(h.id)===String(assignment.hotelId)
+);
+
+return {
+id:String(assignment.id),
+workerId:String(assignment.workerId || ""),
+workerName:worker ? worker.name : "",
+workerPhone:worker ? worker.phone || "" : "",
+placeId:String(assignment.hotelId || ""),
+placeName:hotel ? hotel.name : "",
+placeType:"hotel",
+date:assignment.date || "",
+startTime:assignment.start || "",
+endTime:assignment.end || "",
+rooms:Array.isArray(assignment.rooms) ? assignment.rooms : [],
+roomCount:Number(assignment.roomCount) || 0,
+tasks:assignment.tasks || ""
+};
+});
+
+await fetch("https://clean-care-server.onrender.com/sync-assignments",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({assignments:serverAssignments})
+});
+
+}catch(error){
+console.log("السيرفر غير متصل حالياً");
+}
+}
+
+function applyLanguage(){
+
+document.documentElement.lang=language;
+document.documentElement.dir=language==="ar" ? "rtl":"ltr";
+
+document.getElementById("pageTitle").textContent=t("pageTitle");
+document.getElementById("backButton").textContent=t("back");
+document.getElementById("languageButton").textContent=t("language");
+document.getElementById("statWorkersText").textContent=t("statWorkers");
+document.getElementById("statAssignmentsText").textContent=t("statAssignments");
+document.getElementById("statCompletedText").textContent=t("statCompleted");
+document.getElementById("statHoursText").textContent=t("statHours");
+document.getElementById("addWorkerTitle").textContent=t("addWorker");
+document.getElementById("nameLabel").textContent=t("name");
+document.getElementById("phoneLabel").textContent=t("phone");
+document.getElementById("photoLabel").textContent=t("photo");
+
+document.getElementById("saveWorkerButton").textContent=
+editingWorkerId ? t("edit") : t("saveWorker");
+
+document.getElementById("cancelWorkerButton").textContent=t("cancel");
+document.getElementById("workersListTitle").textContent=t("workersList");
+
+document.getElementById("assignmentTitle").textContent=
+editingAssignmentId ? t("editAssignment") : t("assignmentTitle");
+
+document.getElementById("workerSelectLabel").textContent=t("worker");
+document.getElementById("hotelSelectLabel").textContent=t("hotel");
+document.getElementById("dateLabel").textContent=t("date");
+document.getElementById("startLabel").textContent=t("start");
+document.getElementById("endLabel").textContent=t("end");
+document.getElementById("roomCountLabel").textContent=t("roomCount");
+document.getElementById("roomsLabel").textContent=t("rooms");
+document.getElementById("tasksLabel").textContent=t("tasks");
+document.getElementById("saveAssignmentButton").textContent=t("saveAssignment");
+document.getElementById("cancelAssignmentButton").textContent=t("cancel");
+document.getElementById("assignmentsListTitle").textContent=t("assignmentsList");
+document.getElementById("materialInfo").textContent=t("materialInfo");
+
+applyHoursLanguage();
+}
+
+function toggleLanguage(){
+language=language==="ar" ? "de":"ar";
+localStorage.setItem("appLanguage",language);
+applyLanguage();
+renderAll();
+}
+
+function renderWorkerSelect(){
+
+const select=document.getElementById("assignmentWorker");
+const oldValue=select.value;
+
+select.innerHTML=
+`<option value="">${escapeHtml(t("chooseWorker"))}</option>`;
+
+workers.forEach(worker=>{
+const option=document.createElement("option");
+option.value=String(worker.id);
+option.textContent=worker.name;
+select.appendChild(option);
+});
+
+if(workers.some(w=>String(w.id)===String(oldValue))){
+select.value=String(oldValue);
+}
+}
+
+function renderHotelSelect(){
+
+const select=document.getElementById("assignmentHotel");
+const oldValue=select.value;
+
+select.innerHTML=
+`<option value="">${escapeHtml(t("chooseHotel"))}</option>`;
+
+hotels.forEach(hotel=>{
+const option=document.createElement("option");
+option.value=String(hotel.id);
+option.textContent=
+hotel.name+(hotel.city ? " - "+hotel.city:"");
+select.appendChild(option);
+});
+
+if(hotels.some(h=>String(h.id)===String(oldValue))){
+select.value=String(oldValue);
+}
+}
+
+function loadHotelRooms(){
+
+const hotelId=document.getElementById("assignmentHotel").value;
+const container=document.getElementById("roomsContainer");
+
+container.innerHTML="";
+
+if(!hotelId){
+container.innerHTML=
+`<div class="empty">${escapeHtml(t("chooseHotelFirst"))}</div>`;
+updateRoomCount();
+return;
+}
+
+const hotel=hotels.find(
+h=>String(h.id)===String(hotelId)
+);
+
+if(!hotel || !Array.isArray(hotel.rooms) || hotel.rooms.length===0){
+container.innerHTML=
+`<div class="empty">${
+language==="ar"
+? "لا توجد غرف مسجلة لهذا الفندق."
+: "Für dieses Hotel sind keine Zimmer vorhanden."
+}</div>`;
+updateRoomCount();
+return;
+}
+
+hotel.rooms.forEach(room=>{
+
+const number=room.number ?? room.roomNumber ?? room.name ?? "";
+const type=room.type ?? room.roomType ?? "";
+
+const label=document.createElement("label");
+label.className="room";
+
+const checkbox=document.createElement("input");
+checkbox.type="checkbox";
+checkbox.className="roomCheck";
+checkbox.value=String(number);
+checkbox.dataset.roomType=String(type);
+checkbox.addEventListener("change",updateRoomCount);
+
+const span=document.createElement("span");
+span.textContent=
+String(number)+(type ? " ("+type+" "+t("roomType")+")":"");
+
+label.appendChild(checkbox);
+label.appendChild(span);
+container.appendChild(label);
+});
+
+updateRoomCount();
+}
+
+function updateRoomCount(){
+document.getElementById("roomCount").value=
+document.querySelectorAll(".roomCheck:checked").length;
+}async function saveAssignment(){
+
+const workerId=document.getElementById("assignmentWorker").value;
+const hotelId=document.getElementById("assignmentHotel").value;
+const date=document.getElementById("assignmentDate").value;
+const start=document.getElementById("assignmentStart").value;
+const end=document.getElementById("assignmentEnd").value;
+const tasks=document.getElementById("assignmentTasks").value.trim();
+
+const checks=Array.from(
+document.querySelectorAll(".roomCheck:checked")
+);
+
+if(!workerId){alert(t("noWorker"));return;}
+if(!hotelId){alert(t("noHotel"));return;}
+if(!date){alert(t("noDate"));return;}
+if(checks.length===0){alert(t("noRooms"));return;}
+
+const selectedRooms=checks.map(check=>({
+number:check.value,
+type:check.dataset.roomType || ""
+}));
+
+if(editingAssignmentId){
+
+const oldAssignment=assignments.find(
+a=>String(a.id)===String(editingAssignmentId)
+);
+
+if(!oldAssignment)return;
+
+const updated={
+...oldAssignment,
+workerId:String(workerId),
+hotelId:String(hotelId),
+date,
+start,
+end,
+rooms:selectedRooms,
+roomCount:selectedRooms.length,
+tasks
+};
+
+if(oldAssignment.completed){
+updated.completed=false;
+updated.materialDeducted=false;
+updated.materialDeduction=null;
+}
+
+const {error}=await supabaseClient
+.from("hotel_assignments")
+.update(assignmentToDatabase(updated))
+.eq("id",String(editingAssignmentId));
+
+if(error){
+console.error(error);
+alert(
+language==="ar"
+? "تعذر تعديل المهمة."
+: "Die Aufgabe konnte nicht geändert werden."
+);
+return;
+}
+
+}else{
+
+const newAssignment={
+id:id(),
+workerId:String(workerId),
+hotelId:String(hotelId),
+date,
+start,
+end,
+rooms:selectedRooms,
+roomCount:selectedRooms.length,
+tasks,
+completed:false,
+materialDeducted:false,
+materialDeduction:null,
+delay:0
+};
+
+const {error}=await supabaseClient
+.from("hotel_assignments")
+.insert(assignmentToDatabase(newAssignment));
+
+if(error){
+console.error(error);
+alert(
+language==="ar"
+? "تعذر حفظ المهمة."
+: "Die Aufgabe konnte nicht gespeichert werden."
+);
+return;
+}
+}
+
+clearAssignmentForm();
+await loadAssignments();
+renderAll();
+syncAssignmentsWithServer();
+}
+
+function editAssignment(assignmentId){
+
+const assignment=assignments.find(
+a=>String(a.id)===String(assignmentId)
+);
+
+if(!assignment)return;
+
+editingAssignmentId=String(assignmentId);
+
+document.getElementById("assignmentWorker").value=
+String(assignment.workerId || "");
+
+document.getElementById("assignmentHotel").value=
+String(assignment.hotelId || "");
+
+document.getElementById("assignmentDate").value=assignment.date || "";
+document.getElementById("assignmentStart").value=assignment.start || "";
+document.getElementById("assignmentEnd").value=assignment.end || "";
+document.getElementById("assignmentTasks").value=assignment.tasks || "";
+
+loadHotelRooms();
+
+const selected=Array.isArray(assignment.rooms)
+? assignment.rooms
+: [];
+
+document.querySelectorAll(".roomCheck").forEach(check=>{
+check.checked=selected.some(
+room=>String(room.number)===String(check.value)
+);
+});
+
+updateRoomCount();
+
+document.getElementById("cancelAssignmentButton")
+.classList.remove("hidden");
+
+applyLanguage();
+
+window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function cancelAssignmentEdit(){
+clearAssignmentForm();
+applyLanguage();
+}
+
+function clearAssignmentForm(){
+
+editingAssignmentId=null;
+
+document.getElementById("assignmentWorker").value="";
+document.getElementById("assignmentHotel").value="";
+document.getElementById("assignmentDate").value="";
+document.getElementById("assignmentStart").value="";
+document.getElementById("assignmentEnd").value="";
+document.getElementById("assignmentTasks").value="";
+document.getElementById("roomCount").value="0";
+
+document.getElementById("roomsContainer").innerHTML=
+`<div class="empty">${escapeHtml(t("chooseHotelFirst"))}</div>`;
+
+document.getElementById("cancelAssignmentButton")
+.classList.add("hidden");
+
+setToday();
+}
+
+async function deleteAssignment(assignmentId){
+
+if(!confirm(t("confirmDeleteAssignment")))return;
+
+const {error}=await supabaseClient
+.from("hotel_assignments")
+.delete()
+.eq("id",String(assignmentId));
+
+if(error){
+console.error(error);
+alert(
+language==="ar"
+? "تعذر حذف المهمة."
+: "Die Aufgabe konnte nicht gelöscht werden."
+);
+return;
+}
+
+await loadAssignments();
+renderAll();
+syncAssignmentsWithServer();
+}
+
+function calculateHours(start,end){
+
+if(!start || !end)return 0;
+
+const a=start.split(":").map(Number);
+const b=end.split(":").map(Number);
+
+let startMinutes=a[0]*60+a[1];
+let endMinutes=b[0]*60+b[1];
+
+if(endMinutes<startMinutes){
+endMinutes+=24*60;
+}
+
+return (endMinutes-startMinutes)/60;
+}
+
+function getMaterialRuleForRoomType(roomType){
+
+return materialRules.find(rule=>{
+return (
+rule.workType==="room" &&
+String(rule.roomType ?? "")===String(roomType)
+);
+});
+}
+
+function calculateMaterialsForAssignment(assignment){
+
+const needed={};
+
+const rooms=Array.isArray(assignment.rooms)
+? assignment.rooms
+: [];
+
+rooms.forEach(room=>{
+
+const rule=getMaterialRuleForRoomType(room.type);
+if(!rule)return;
+
+const items=Array.isArray(rule.items)
+? rule.items
+: [];
+
+items.forEach(item=>{
+
+const materialId=String(
+item.materialId ?? item.material_id ?? ""
+);
+
+const quantity=Number(item.quantity) || 0;
+
+if(!materialId || quantity<=0)return;
+
+if(!needed[materialId])needed[materialId]=0;
+needed[materialId]+=quantity;
+});
+});
+
+return needed;
+}
+
+function materialName(material){
+
+if(!material)return "";
+
+return material.name_ar ||
+material.nameAr ||
+material.name_de ||
+material.nameDe ||
+material.name ||
+"Material";
+}
+
+async function deductMaterials(assignment){
+
+if(assignment.materialDeducted){
+return {success:false,already:true};
+}
+
+const needed=calculateMaterialsForAssignment(assignment);
+const materialIds=Object.keys(needed);
+
+if(materialIds.length===0){
+
+assignment.materialDeducted=true;
+assignment.materialDeduction={
+items:[],
+date:new Date().toISOString(),
+message:"no-rule"
+};
+
+const {error}=await supabaseClient
+.from("hotel_assignments")
+.update({
+material_deducted:true,
+material_deduction:assignment.materialDeduction
+})
+.eq("id",String(assignment.id));
+
+if(error){
+console.error(error);
+return {success:false};
+}
+
+return {success:true,noRule:true};
+}
+
+const insufficient=[];
+
+materialIds.forEach(materialId=>{
+
+const material=materials.find(
+m=>String(m.id)===String(materialId)
+);
+
+if(!material){
+
+insufficient.push({
+name:materialId,
+needed:needed[materialId],
+available:0
+});
+
+return;
+}
+
+const current=Number(material.quantity) || 0;
+
+if(current<needed[materialId]){
+insufficient.push({
+name:materialName(material),
+needed:needed[materialId],
+available:current
+});
+}
+});
+
+if(insufficient.length>0){
+return {success:false,insufficient};
+}
+
+const deductionItems=[];
+
+for(const materialId of materialIds){
+
+const material=materials.find(
+m=>String(m.id)===String(materialId)
+);
+
+const quantity=needed[materialId];
+const before=Number(material.quantity) || 0;
+const after=before-quantity;
+
+const history=Array.isArray(material.history)
+? [...material.history]
+: [];
+
+history.unshift({
+id:id(),
+type:"remove",
+quantity:quantity,
+reason:
+language==="ar"
+? "خصم تلقائي من عمل فندق"
+: "Automatischer Abzug durch Hotelarbeit",
+date:new Date().toISOString()
+});
+
+const {error}=await supabaseClient
+.from("materials")
+.update({
+quantity:after,
+history:history
+})
+.eq("id",String(materialId));
+
+if(error){
+console.error(error);
+return {success:false};
+}
+
+material.quantity=after;
+material.history=history;
+
+deductionItems.push({
+materialId:String(materialId),
+name:materialName(material),
+quantity,
+before,
+after
+});
+}
+
+assignment.materialDeducted=true;
+assignment.materialDeduction={
+items:deductionItems,
+date:new Date().toISOString()
+};
+
+const {error}=await supabaseClient
+.from("hotel_assignments")
+.update({
+material_deducted:true,
+material_deduction:assignment.materialDeduction
+})
+.eq("id",String(assignment.id));
+
+if(error){
+console.error(error);
+return {success:false};
+}
+
+localStorage.setItem("materials",JSON.stringify(materials));
+
+return {success:true,items:deductionItems};
+}
+
+async function completeAssignment(assignmentId){
+
+const assignment=assignments.find(
+a=>String(a.id)===String(assignmentId)
+);
+
+if(!assignment)return;
+
+if(assignment.materialDeducted){
+
+const {error}=await supabaseClient
+.from("hotel_assignments")
+.update({completed:true})
+.eq("id",String(assignment.id));
+
+if(error){
+console.error(error);
+return;
+}
+
+await loadAssignments();
+renderAll();
+syncAssignmentsWithServer();
+
+alert(t("alreadyDeducted"));
+return;
+}
+
+const result=await deductMaterials(assignment);
+
+if(!result.success){
+
+if(result.insufficient){
+
+const message=result.insufficient
+.map(item=>`${item.name}: ${item.available} / ${item.needed}`)
+.join("\n");
+
+alert(t("insufficient")+"\n\n"+message);
+}
+
+return;
+}
+
+const {error}=await supabaseClient
+.from("hotel_assignments")
+.update({completed:true})
+.eq("id",String(assignment.id));
+
+if(error){
+console.error(error);
+return;
+}
+
+await loadAssignments();
+await loadMaterials();
+
+renderAll();
+syncAssignmentsWithServer();
+
+if(result.noRule){
+alert(t("workFinished")+"\n\n"+t("noRule"));
+return;
+}
+
+const materialMessage=result.items
+.map(item=>`${item.name}: -${item.quantity}`)
+.join("\n");
+
+alert(
+t("workFinished")+
+"\n\n"+
+t("materialsDeducted")+
+"\n\n"+
+materialMessage
+);
+}
+
+function renderWorkers(){
+
+const container=document.getElementById("workersList");
+
+if(workers.length===0){
+container.innerHTML=
+`<div class="empty">${escapeHtml(t("noWorkers"))}</div>`;
+return;
+}
+
+container.innerHTML="";
+
+workers.forEach(worker=>{
+
+const card=document.createElement("div");
+card.className="worker-card";
+
+if(worker.photo){
+const img=document.createElement("img");
+img.src=worker.photo;
+img.className="worker-photo";
+card.appendChild(img);
+}
+
+const h3=document.createElement("h3");
+h3.textContent=worker.name;
+card.appendChild(h3);
+
+if(worker.phone){
+const phone=document.createElement("div");
+phone.textContent=worker.phone;
+card.appendChild(phone);
+}
+
+const actions=document.createElement("div");
+actions.className="actions";
+
+const edit=document.createElement("button");
+edit.textContent=t("edit");
+edit.onclick=()=>editWorker(worker.id);
+
+const del=document.createElement("button");
+del.textContent=t("delete");
+del.className="red";
+del.onclick=()=>deleteWorker(worker.id);
+
+actions.appendChild(edit);
+actions.appendChild(del);
+card.appendChild(actions);
+container.appendChild(card);
+});
+}
+
+function renderAssignments(){
+
+const container=document.getElementById("assignmentsList");
+
+if(assignments.length===0){
+container.innerHTML=
+`<div class="empty">${escapeHtml(t("noAssignments"))}</div>`;
+return;
+}
+
+container.innerHTML="";
+
+const sorted=[...assignments].sort(
+(a,b)=>String(b.date || "").localeCompare(String(a.date || ""))
+);
+
+sorted.forEach(assignment=>{
+
+const worker=workers.find(
+w=>String(w.id)===String(assignment.workerId)
+);
+
+const hotel=hotels.find(
+h=>String(h.id)===String(assignment.hotelId)
+);
+
+const card=document.createElement("div");
+card.className="assignment-card";
+
+const title=document.createElement("h3");
+title.textContent=
+(worker ? worker.name : "-")+" - "+(hotel ? hotel.name : "-");
+card.appendChild(title);
+
+const status=document.createElement("span");
+status.className=
+"badge "+(assignment.completed ? "done":"notdone");
+status.textContent=
+assignment.completed ? t("completed") : t("notCompleted");
+card.appendChild(status);
+
+const info=document.createElement("div");
+info.style.marginTop="10px";
+
+info.innerHTML=`
+<div><strong>${escapeHtml(t("date"))}:</strong> ${escapeHtml(assignment.date || "-")}</div>
+<div>
+<strong>${escapeHtml(t("start"))}:</strong> ${escapeHtml(assignment.start || "-")}
+&nbsp;&nbsp;
+<strong>${escapeHtml(t("end"))}:</strong> ${escapeHtml(assignment.end || "-")}
+</div>
+<div><strong>${escapeHtml(t("roomCount"))}:</strong> ${Number(assignment.roomCount || 0)}</div>
+`;
+
+card.appendChild(info);
+
+if(Array.isArray(assignment.rooms)){
+
+const roomsDiv=document.createElement("div");
+roomsDiv.style.marginTop="8px";
+
+roomsDiv.textContent=
+t("rooms")+": "+
+assignment.rooms.map(r=>String(r.number)).join(", ");
+
+card.appendChild(roomsDiv);
+}
+
+if(assignment.tasks){
+
+const taskDiv=document.createElement("div");
+taskDiv.style.marginTop="8px";
+taskDiv.textContent=t("tasks")+": "+assignment.tasks;
+card.appendChild(taskDiv);
+}
+
+if(
+assignment.materialDeduction &&
+Array.isArray(assignment.materialDeduction.items) &&
+assignment.materialDeduction.items.length
+){
+
+const materialDiv=document.createElement("div");
+materialDiv.className="material-result";
+
+materialDiv.innerHTML=
+`<strong>${escapeHtml(t("materialsDeducted"))}</strong><br><br>`+
+assignment.materialDeduction.items
+.map(item=>`${escapeHtml(item.name)}: -${item.quantity}`)
+.join("<br>");
+
+card.appendChild(materialDiv);
+}
+
+const actions=document.createElement("div");
+actions.className="actions";
+
+if(!assignment.completed){
+
+const finish=document.createElement("button");
+finish.className="green";
+finish.textContent=t("finishWork");
+finish.onclick=()=>completeAssignment(assignment.id);
+actions.appendChild(finish);
+}
+
+const edit=document.createElement("button");
+edit.textContent=t("editAssignment");
+edit.onclick=()=>editAssignment(assignment.id);
+
+const del=document.createElement("button");
+del.className="red";
+del.textContent=t("deleteAssignment");
+del.onclick=()=>deleteAssignment(assignment.id);
+
+actions.appendChild(edit);
+actions.appendChild(del);
+
+card.appendChild(actions);
+container.appendChild(card);
+});
+}
+
+function renderStats(){
+
+document.getElementById("statWorkers").textContent=workers.length;
+document.getElementById("statAssignments").textContent=assignments.length;
+
+document.getElementById("statCompleted").textContent=
+assignments.filter(a=>a.completed).length;
+
+let hours=0;
+
+assignments.forEach(a=>{
+hours+=calculateHours(a.start,a.end);
+});
+
+document.getElementById("statHours").textContent=
+Number(hours.toFixed(2));
+}
+
+function getTripWorkerIds(trip){
+
+const ids=[];
+
+if(trip.workerId)ids.push(String(trip.workerId));
+if(trip.worker1Id)ids.push(String(trip.worker1Id));
+if(trip.worker2Id)ids.push(String(trip.worker2Id));
+
+if(Array.isArray(trip.workerIds)){
+trip.workerIds.forEach(workerId=>{
+if(workerId)ids.push(String(workerId));
+});
+}
+
+return [...new Set(ids)];
+}
+
+function getTripHours(trip){
+return (Number(trip.duration) || 0)/60;
+}
+
+function getWorkerHotelHours(workerId){
+
+if(!workerId)return 0;
+
+let total=0;
+
+assignments.forEach(assignment=>{
+if(String(assignment.workerId)!==String(workerId))return;
+total+=calculateHours(assignment.start,assignment.end);
+});
+
+return total;
+}
+
+function getWorkerTrainHours(workerId){
+
+if(!workerId)return 0;
+
+let total=0;
+
+trips.forEach(trip=>{
+if(getTripWorkerIds(trip).includes(String(workerId))){
+total+=getTripHours(trip);
+}
+});
+
+return total;
+}
+
+function getWorkerTotalHours(workerId){
+return getWorkerHotelHours(workerId)+getWorkerTrainHours(workerId);
+}
+
+function getHotelTotalHours(hotelId){
+
+if(!hotelId)return 0;
+
+let total=0;
+
+assignments.forEach(assignment=>{
+if(String(assignment.hotelId)!==String(hotelId))return;
+total+=calculateHours(assignment.start,assignment.end);
+});
+
+return total;
+}
+
+function getWorkerHotelSpecificHours(workerId,hotelId){
+
+if(!workerId || !hotelId)return 0;
+
+let total=0;
+
+assignments.forEach(assignment=>{
+
+if(
+String(assignment.workerId)===String(workerId) &&
+String(assignment.hotelId)===String(hotelId)
+){
+total+=calculateHours(assignment.start,assignment.end);
+}
+});
+
+return total;
+}
+
+function renderHoursWorkerFilter(){
+
+const select=document.getElementById("hoursWorkerFilter");
+const oldValue=select.value;
+
+select.innerHTML="";
+
+const first=document.createElement("option");
+first.value="";
+first.textContent=t("allWorkers");
+select.appendChild(first);
+
+workers.forEach(worker=>{
+const option=document.createElement("option");
+option.value=String(worker.id);
+option.textContent=worker.name;
+select.appendChild(option);
+});
+
+if(workers.some(w=>String(w.id)===String(oldValue))){
+select.value=String(oldValue);
+}
+}
+
+function renderHoursHotelFilter(){
+
+const select=document.getElementById("hoursHotelFilter");
+const oldValue=select.value;
+
+select.innerHTML="";
+
+const first=document.createElement("option");
+first.value="";
+first.textContent=t("allHotels");
+select.appendChild(first);
+
+hotels.forEach(hotel=>{
+
+const option=document.createElement("option");
+option.value=String(hotel.id);
+
+option.textContent=
+hotel.name+(hotel.city ? " - "+hotel.city:"");
+
+select.appendChild(option);
+});
+
+if(hotels.some(h=>String(h.id)===String(oldValue))){
+select.value=String(oldValue);
+}
+}
+
+function renderHoursReport(){
+
+const workerId=document.getElementById("hoursWorkerFilter").value;
+const hotelId=document.getElementById("hoursHotelFilter").value;
+
+const workerHours=workerId ? getWorkerTotalHours(workerId):0;
+const hotelHours=hotelId ? getHotelTotalHours(hotelId):0;
+
+const workerHotelHours=
+workerId && hotelId
+? getWorkerHotelSpecificHours(workerId,hotelId)
+: 0;
+
+document.getElementById("workerTotalHours").textContent=
+Number(workerHours.toFixed(2));
+
+document.getElementById("hotelTotalHours").textContent=
+Number(hotelHours.toFixed(2));
+
+document.getElementById("workerHotelTotalHours").textContent=
+Number(workerHotelHours.toFixed(2));
+
+const details=[];
+
+if(workerId){
+
+const worker=workers.find(
+w=>String(w.id)===String(workerId)
+);
+
+if(worker){
+details.push(
+worker.name+": "+
+Number(workerHours.toFixed(2))+" "+t("hours")
+);
+}
+}
+
+if(hotelId){
+
+const hotel=hotels.find(
+h=>String(h.id)===String(hotelId)
+);
+
+if(hotel){
+details.push(
+hotel.name+": "+
+Number(hotelHours.toFixed(2))+" "+t("hours")
+);
+}
+}
+
+if(workerId && hotelId){
+details.push(
+t("workerHotelTotalHours")+": "+
+Number(workerHotelHours.toFixed(2))+" "+t("hours")
+);
+}
+
+const box=document.getElementById("hoursReportDetails");
+
+box.textContent=
+details.length ? details.join(" | ") : t("noHours");
+}
+
+function applyHoursLanguage(){
+
+document.getElementById("hoursReportTitle").textContent=t("hoursReport");
+document.getElementById("hoursWorkerLabel").textContent=t("hoursWorker");
+document.getElementById("hoursHotelLabel").textContent=t("hoursHotel");
+document.getElementById("workerTotalHoursText").textContent=t("workerTotalHours");
+document.getElementById("hotelTotalHoursText").textContent=t("hotelTotalHours");
+document.getElementById("workerHotelTotalHoursText").textContent=t("workerHotelTotalHours");
+}
+
+function renderAll(){
+
+renderWorkerSelect();
+renderHotelSelect();
+renderHoursWorkerFilter();
+renderHoursHotelFilter();
+renderWorkers();
+renderAssignments();
+renderStats();
+applyLanguage();
+renderHoursReport();
+}
+
+function goHome(){
+window.location.href="index.html";
+}
+
+function setToday(){
+
+const input=document.getElementById("assignmentDate");
+
+if(input.value)return;
+
+const now=new Date();
+const year=now.getFullYear();
+const month=String(now.getMonth()+1).padStart(2,"0");
+const day=String(now.getDate()).padStart(2,"0");
+
+input.value=`${year}-${month}-${day}`;
+}
+
+async function startPage(){
+
+const {data:{session},error}=
+await supabaseClient.auth.getSession();
+
+if(error || !session){
+window.location.href="login.html";
+return;
+}
+
+setToday();
+
+await Promise.all([
+loadWorkers(),
+loadHotels(),
+loadMaterials(),
+loadMaterialRules(),
+loadTrips()
+]);
+
+await loadAssignments();
+
+renderAll();
+syncAssignmentsWithServer();
+}
+
+startPage();
+
+</script>
+</body>
+</html>

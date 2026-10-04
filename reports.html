@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clean & Care - التقارير</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Tahoma,sans-serif;background:#f4f6f8;color:#222}
+header{background:#1f2937;color:white;padding:18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+header h1{margin:0;font-size:24px}
+button{border:0;border-radius:8px;padding:10px 16px;cursor:pointer;font-size:15px;background:#2563eb;color:white}
+button:hover{opacity:.9}
+.btn-danger{background:#dc2626}
+.btn-secondary{background:#6b7280}
+.btn-success{background:#16a34a}
+.container{max-width:1250px;margin:20px auto;padding:0 15px}
+.card{background:white;border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.card h2{margin-top:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:15px}
+.field{display:flex;flex-direction:column;gap:6px}
+.full{grid-column:1/-1}
+label{font-weight:bold}
+input,select,textarea{width:100%;padding:11px;border:1px solid #d1d5db;border-radius:8px;font-size:15px;background:white}
+textarea{min-height:80px;resize:vertical}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:15px;margin-bottom:20px}
+.stat{background:white;padding:18px;border-radius:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.stat-number{font-size:28px;font-weight:bold;margin-top:8px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.tab{background:#e5e7eb;color:#222}
+.tab.active{background:#2563eb;color:white}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:1000px}
+th,td{border-bottom:1px solid #e5e7eb;padding:11px 9px;text-align:right;vertical-align:top}
+th{background:#f3f4f6}
+.badge{display:inline-block;padding:5px 9px;border-radius:20px;font-size:13px;background:#e5e7eb}
+.badge-green{background:#dcfce7;color:#166534}
+.badge-red{background:#fee2e2;color:#991b1b}
+.badge-yellow{background:#fef3c7;color:#92400e}
+.empty{text-align:center;padding:30px;color:#777}
+.hidden{display:none}
+.report-section{margin-top:20px}
+@media(max-width:600px){
+header{align-items:stretch}
+header button{width:100%}
+.container{padding:0 10px}
+.card{padding:15px}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1 id="pageTitle">التقارير</h1>
+<div>
+<button onclick="toggleLanguage()" id="languageBtn">Deutsch</button>
+<button onclick="goHome()" class="btn-secondary" id="backBtn">الرئيسية</button>
+</div>
+</header>
+
+<div class="container">
+
+<div class="stats">
+<div class="stat"><div id="statWorkersLabel">العاملون</div><div class="stat-number" id="statWorkers">0</div></div>
+<div class="stat"><div id="statJobsLabel">الأعمال</div><div class="stat-number" id="statJobs">0</div></div>
+<div class="stat"><div id="statCompletedLabel">المكتملة</div><div class="stat-number" id="statCompleted">0</div></div>
+<div class="stat"><div id="statIncompleteLabel">غير المكتملة</div><div class="stat-number" id="statIncomplete">0</div></div>
+<div class="stat"><div id="statHoursLabel">الساعات</div><div class="stat-number" id="statHours">0</div></div>
+<div class="stat"><div id="statDelayLabel">التأخير</div><div class="stat-number" id="statDelay">0</div></div>
+</div>
+
+<div class="tabs">
+<button class="tab active" id="tabGeneral" onclick="showReport('general')">التقرير العام</button>
+<button class="tab" id="tabReminder" onclick="showReport('reminder')">تقرير التذكير</button>
+<button class="tab" id="tabCompletion" onclick="showReport('completion')">تقرير إنجاز العمل</button>
+</div>
+
+<div id="generalSection" class="report-section">
+
+<div class="card">
+<h2 id="generalTitle">التقرير العام</h2>
+
+<div class="grid">
+
+<div class="field">
+<label id="fromLabel">من تاريخ</label>
+<input type="date" id="fromDate" onchange="renderGeneral()">
+</div>
+
+<div class="field">
+<label id="toLabel">إلى تاريخ</label>
+<input type="date" id="toDate" onchange="renderGeneral()">
+</div>
+
+<div class="field">
+<label id="workerFilterLabel">العامل</label>
+<input type="text" id="workerFilter" oninput="renderGeneral()">
+</div>
+
+<div class="field">
+<label id="placeFilterLabel">المكان</label>
+<input type="text" id="placeFilter" oninput="renderGeneral()">
+</div>
+
+</div>
+</div>
+
+<div class="card">
+<h2 id="generalListTitle">تفاصيل الأعمال</h2>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th id="gDate">التاريخ</th>
+<th id="gWorker">العامل</th>
+<th id="gPlace">المكان</th>
+<th id="gStart">البداية</th>
+<th id="gEnd">النهاية</th>
+<th id="gHours">الساعات</th>
+<th id="gRooms">الغرف</th>
+<th id="gStatus">الحالة</th>
+<th id="gDelay">التأخير</th>
+</tr>
+</thead>
+<tbody id="generalTable"></tbody>
+</table>
+</div>
+
+<div id="generalEmpty" class="empty hidden">لا توجد بيانات.</div>
+</div>
+</div>
+
+<div id="reminderSection" class="report-section hidden">
+
+<div class="card">
+<h2 id="reminderTitle">تقرير التذكير</h2>
+
+<div class="grid">
+
+<div class="field">
+<label id="rDateLabel">التاريخ</label>
+<input type="date" id="rDate">
+</div>
+
+<div class="field">
+<label id="rWorkerLabel">العامل</label>
+<input type="text" id="rWorker">
+</div>
+
+<div class="field">
+<label id="rPlaceLabel">المكان</label>
+<input type="text" id="rPlace">
+</div>
+
+<div class="field">
+<label id="rStartLabel">وقت البداية</label>
+<input type="time" id="rStart">
+</div>
+
+<div class="field">
+<label id="rSentLabel">تم إرسال التذكير</label>
+<select id="rSent">
+<option value="yes" id="rSentYes">نعم</option>
+<option value="no" id="rSentNo">لا</option>
+</select>
+</div>
+
+<div class="field">
+<label id="rStatusLabel">الحالة</label>
+<select id="rStatus">
+<option value="pending" id="rPending">بانتظار العمل</option>
+<option value="done" id="rDone">تم</option>
+<option value="cancelled" id="rCancelled">ملغى</option>
+</select>
+</div>
+
+</div>
+
+<div class="actions">
+<button onclick="addReminderReport()" class="btn-success" id="addReminderBtn">إضافة تذكير</button>
+</div>
+</div>
+
+<div class="card">
+<h2 id="reminderListTitle">سجل التذكيرات</h2>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th id="rtDate">التاريخ</th>
+<th id="rtWorker">العامل</th>
+<th id="rtPlace">المكان</th>
+<th id="rtStart">البداية</th>
+<th id="rtSent">التذكير</th>
+<th id="rtStatus">الحالة</th>
+<th id="rtActions">الإجراءات</th>
+</tr>
+</thead>
+<tbody id="reminderTable"></tbody>
+</table>
+</div>
+
+<div id="reminderEmpty" class="empty hidden">لا توجد تذكيرات.</div>
+</div>
+</div>
+
+<div id="completionSection" class="report-section hidden">
+
+<div class="card">
+<h2 id="completionTitle">تقرير إنجاز العمل</h2>
+
+<div class="grid">
+
+<div class="field">
+<label id="cDateLabel">التاريخ</label>
+<input type="date" id="cDate">
+</div>
+
+<div class="field">
+<label id="cWorkerLabel">العامل</label>
+<input type="text" id="cWorker">
+</div>
+
+<div class="field">
+<label id="cPlaceLabel">المكان</label>
+<input type="text" id="cPlace">
+</div>
+
+<div class="field">
+<label id="cStartLabel">وقت البداية</label>
+<input type="time" id="cStart">
+</div>
+
+<div class="field">
+<label id="cEndLabel">وقت النهاية</label>
+<input type="time" id="cEnd">
+</div>
+
+<div class="field">
+<label id="cHoursLabel">الساعات</label>
+<input type="number" id="cHours" min="0" step="0.5">
+</div>
+
+<div class="field">
+<label id="cRoomsLabel">عدد الغرف</label>
+<input type="number" id="cRooms" min="0">
+</div>
+
+<div class="field">
+<label id="cDelayLabel">التأخير بالدقائق</label>
+<input type="number" id="cDelay" min="0">
+</div>
+
+<div class="field">
+<label id="cStatusLabel">الحالة</label>
+<select id="cStatus">
+<option value="completed" id="cCompleted">مكتمل</option>
+<option value="incomplete" id="cIncomplete">غير مكتمل</option>
+</select>
+</div>
+
+<div class="field full">
+<label id="cTasksLabel">المهام</label>
+<textarea id="cTasks"></textarea>
+</div>
+
+<div class="field full">
+<label id="cMaterialsLabel">المواد المستخدمة</label>
+<textarea id="cMaterials"></textarea>
+</div>
+
+</div>
+
+<div class="actions">
+<button onclick="addCompletionReport()" class="btn-success" id="addCompletionBtn">إضافة تقرير</button>
+</div>
+</div>
+
+<div class="card">
+<h2 id="completionListTitle">سجل إنجاز العمل</h2>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th id="ctDate">التاريخ</th>
+<th id="ctWorker">العامل</th>
+<th id="ctPlace">المكان</th>
+<th id="ctTasks">المهام</th>
+<th id="ctRooms">الغرف</th>
+<th id="ctStart">البداية</th>
+<th id="ctEnd">النهاية</th>
+<th id="ctHours">الساعات</th>
+<th id="ctStatus">الحالة</th>
+<th id="ctDelay">التأخير</th>
+<th id="ctMaterials">المواد</th>
+<th id="ctActions">الإجراءات</th>
+</tr>
+</thead>
+<tbody id="completionTable"></tbody>
+</table>
+</div>
+
+<div id="completionEmpty" class="empty hidden">لا توجد تقارير.</div>
+</div>
+</div>
+
+</div>
+
+<script>
+const SUPABASE_URL="https://vjllurkvzvumsfjxuxuz.supabase.co";
+const SUPABASE_KEY="sb_publishable_4TiwsqWNph3wQzdoASlasg_gh4x1Atz";
+const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+let language=localStorage.getItem("appLanguage") || "ar";
+
+let reminderReports=[];
+let completionReports=[];
+let assignments=[];
+let workers=[];
+let hotels=[];
+let trips=[];
+let otherPlaces=[];
+
+const translations={
+ar:{
+pageTitle:"التقارير",languageBtn:"Deutsch",backBtn:"الرئيسية",
+statWorkersLabel:"العاملون",statJobsLabel:"الأعمال",
+statCompletedLabel:"المكتملة",statIncompleteLabel:"غير المكتملة",
+statHoursLabel:"الساعات",statDelayLabel:"التأخير",
+tabGeneral:"التقرير العام",tabReminder:"تقرير التذكير",
+tabCompletion:"تقرير إنجاز العمل",
+generalTitle:"التقرير العام",fromLabel:"من تاريخ",toLabel:"إلى تاريخ",
+workerFilterLabel:"العامل",placeFilterLabel:"المكان",
+generalListTitle:"تفاصيل الأعمال",gDate:"التاريخ",gWorker:"العامل",
+gPlace:"المكان",gStart:"البداية",gEnd:"النهاية",gHours:"الساعات",
+gRooms:"الغرف",gStatus:"الحالة",gDelay:"التأخير",
+reminderTitle:"تقرير التذكير",rDateLabel:"التاريخ",rWorkerLabel:"العامل",
+rPlaceLabel:"المكان",rStartLabel:"وقت البداية",rSentLabel:"تم إرسال التذكير",
+rSentYes:"نعم",rSentNo:"لا",rStatusLabel:"الحالة",
+rPending:"بانتظار العمل",rDone:"تم",rCancelled:"ملغى",
+addReminderBtn:"إضافة تذكير",reminderListTitle:"سجل التذكيرات",
+rtDate:"التاريخ",rtWorker:"العامل",rtPlace:"المكان",rtStart:"البداية",
+rtSent:"التذكير",rtStatus:"الحالة",rtActions:"الإجراءات",
+completionTitle:"تقرير إنجاز العمل",cDateLabel:"التاريخ",
+cWorkerLabel:"العامل",cPlaceLabel:"المكان",cStartLabel:"وقت البداية",
+cEndLabel:"وقت النهاية",cHoursLabel:"الساعات",cRoomsLabel:"عدد الغرف",
+cDelayLabel:"التأخير بالدقائق",cStatusLabel:"الحالة",
+cCompleted:"مكتمل",cIncomplete:"غير مكتمل",cTasksLabel:"المهام",
+cMaterialsLabel:"المواد المستخدمة",addCompletionBtn:"إضافة تقرير",
+completionListTitle:"سجل إنجاز العمل",ctDate:"التاريخ",
+ctWorker:"العامل",ctPlace:"المكان",ctTasks:"المهام",ctRooms:"الغرف",
+ctStart:"البداية",ctEnd:"النهاية",ctHours:"الساعات",ctStatus:"الحالة",
+ctDelay:"التأخير",ctMaterials:"المواد",ctActions:"الإجراءات",
+delete:"حذف",completed:"مكتمل",incomplete:"غير مكتمل",
+pending:"بانتظار العمل",cancelled:"ملغى",yes:"نعم",no:"لا",
+confirmDelete:"هل أنت متأكد من الحذف؟",added:"تمت الإضافة بنجاح.",
+saveError:"حدث خطأ أثناء الحفظ.",deleteError:"حدث خطأ أثناء الحذف.",
+loadError:"حدث خطأ أثناء تحميل التقارير.",
+noValue:"-",hours:"ساعة",minutes:"دقيقة"
+},
+de:{
+pageTitle:"Berichte",languageBtn:"العربية",backBtn:"Startseite",
+statWorkersLabel:"Mitarbeiter",statJobsLabel:"Arbeiten",
+statCompletedLabel:"Abgeschlossen",statIncompleteLabel:"Nicht abgeschlossen",
+statHoursLabel:"Stunden",statDelayLabel:"Verspätung",
+tabGeneral:"Allgemeiner Bericht",tabReminder:"Erinnerungsbericht",
+tabCompletion:"Arbeitsabschlussbericht",
+generalTitle:"Allgemeiner Bericht",fromLabel:"Von Datum",toLabel:"Bis Datum",
+workerFilterLabel:"Mitarbeiter",placeFilterLabel:"Ort",
+generalListTitle:"Arbeitsdetails",gDate:"Datum",gWorker:"Mitarbeiter",
+gPlace:"Ort",gStart:"Beginn",gEnd:"Ende",gHours:"Stunden",
+gRooms:"Zimmer",gStatus:"Status",gDelay:"Verspätung",
+reminderTitle:"Erinnerungsbericht",rDateLabel:"Datum",
+rWorkerLabel:"Mitarbeiter",rPlaceLabel:"Ort",rStartLabel:"Startzeit",
+rSentLabel:"Erinnerung gesendet",rSentYes:"Ja",rSentNo:"Nein",
+rStatusLabel:"Status",rPending:"Arbeit ausstehend",rDone:"Erledigt",
+rCancelled:"Storniert",addReminderBtn:"Erinnerung hinzufügen",
+reminderListTitle:"Erinnerungsliste",rtDate:"Datum",rtWorker:"Mitarbeiter",
+rtPlace:"Ort",rtStart:"Beginn",rtSent:"Erinnerung",rtStatus:"Status",
+rtActions:"Aktionen",completionTitle:"Arbeitsabschlussbericht",
+cDateLabel:"Datum",cWorkerLabel:"Mitarbeiter",cPlaceLabel:"Ort",
+cStartLabel:"Startzeit",cEndLabel:"Endzeit",cHoursLabel:"Stunden",
+cRoomsLabel:"Anzahl Zimmer",cDelayLabel:"Verspätung in Minuten",
+cStatusLabel:"Status",cCompleted:"Abgeschlossen",
+cIncomplete:"Nicht abgeschlossen",cTasksLabel:"Aufgaben",
+cMaterialsLabel:"Verwendete Materialien",addCompletionBtn:"Bericht hinzufügen",
+completionListTitle:"Arbeitsabschlussliste",ctDate:"Datum",
+ctWorker:"Mitarbeiter",ctPlace:"Ort",ctTasks:"Aufgaben",ctRooms:"Zimmer",
+ctStart:"Beginn",ctEnd:"Ende",ctHours:"Stunden",ctStatus:"Status",
+ctDelay:"Verspätung",ctMaterials:"Materialien",ctActions:"Aktionen",
+delete:"Löschen",completed:"Abgeschlossen",incomplete:"Nicht abgeschlossen",
+pending:"Arbeit ausstehend",cancelled:"Storniert",yes:"Ja",no:"Nein",
+confirmDelete:"Möchten Sie diesen Eintrag wirklich löschen?",
+added:"Erfolgreich hinzugefügt.",saveError:"Fehler beim Speichern.",
+deleteError:"Fehler beim Löschen.",loadError:"Fehler beim Laden der Berichte.",
+noValue:"-",hours:"Stunden",minutes:"Minuten"
+}
+};
+
+function t(key){
+return translations[language][key] || key;
+}
+
+function newId(){
+return Date.now().toString()+Math.random().toString(16).slice(2);
+}
+
+function escapeHtml(value){
+return String(value ?? "")
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;")
+.replace(/"/g,"&quot;")
+.replace(/'/g,"&#039;");
+}
+
+function calculateHours(start,end){
+if(!start || !end)return 0;
+
+const a=start.split(":");
+const b=end.split(":");
+
+if(a.length<2 || b.length<2)return 0;
+
+let startMinutes=Number(a[0])*60+Number(a[1]);
+let endMinutes=Number(b[0])*60+Number(b[1]);
+
+if(endMinutes<startMinutes)endMinutes+=24*60;
+
+return Math.round(((endMinutes-startMinutes)/60)*100)/100;
+}
+
+function applyLanguage(){
+document.documentElement.lang=language;
+document.documentElement.dir=language==="ar" ? "rtl" : "ltr";
+
+const tr=translations[language];
+
+Object.keys(tr).forEach(key=>{
+const el=document.getElementById(key);
+if(el)el.textContent=tr[key];
+});
+
+renderAll();
+}
+
+function toggleLanguage(){
+language=language==="ar" ? "de" : "ar";
+localStorage.setItem("appLanguage",language);
+applyLanguage();
+}
+
+function goHome(){
+window.location.href="index.html";
+}
+
+function showReport(type){
+
+document.getElementById("generalSection").classList.add("hidden");
+document.getElementById("reminderSection").classList.add("hidden");
+document.getElementById("completionSection").classList.add("hidden");
+
+document.getElementById("tabGeneral").classList.remove("active");
+document.getElementById("tabReminder").classList.remove("active");
+document.getElementById("tabCompletion").classList.remove("active");
+
+if(type==="general"){
+document.getElementById("generalSection").classList.remove("hidden");
+document.getElementById("tabGeneral").classList.add("active");
+}
+
+if(type==="reminder"){
+document.getElementById("reminderSection").classList.remove("hidden");
+document.getElementById("tabReminder").classList.add("active");
+}
+
+if(type==="completion"){
+document.getElementById("completionSection").classList.remove("hidden");
+document.getElementById("tabCompletion").classList.add("active");
+}
+}
+
+function assignmentFromDatabase(row){
+return {
+id:String(row.id),
+workerId:String(row.worker_id || ""),
+hotelId:String(row.hotel_id || ""),
+date:row.date || "",
+start:row.start_time || "",
+end:row.end_time || "",
+rooms:Array.isArray(row.rooms) ? row.rooms : [],
+roomCount:Number(row.room_count || 0),
+tasks:row.tasks || "",
+completed:Boolean(row.completed),
+materialDeducted:Boolean(row.material_deducted),
+materialDeduction:row.material_deduction || null,
+delay:Number(row.delay || 0)
+};
+}
+
+async function loadData(){
+
+let oldReminderReports=[];
+let oldCompletionReports=[];
+
+try{
+oldReminderReports=JSON.parse(
+localStorage.getItem("reminderReports") || "[]"
+);
+if(!Array.isArray(oldReminderReports))oldReminderReports=[];
+}catch(e){
+oldReminderReports=[];
+}
+
+try{
+oldCompletionReports=JSON.parse(
+localStorage.getItem("completionReports") || "[]"
+);
+if(!Array.isArray(oldCompletionReports))oldCompletionReports=[];
+}catch(e){
+oldCompletionReports=[];
+}
+
+const [
+workersResult,
+hotelsResult,
+assignmentsResult,
+tripsResult,
+otherPlacesResult,
+remindersResult,
+completionsResult
+]=await Promise.all([
+
+db.from("workers").select("*"),
+
+db.from("hotels").select("*"),
+
+db.from("hotel_assignments")
+.select("*")
+.order("created_at",{ascending:false}),
+
+db.from("trips").select("*"),
+
+db.from("other_places").select("*"),
+
+db.from("reminder_reports")
+.select("*")
+.order("created_at",{ascending:false}),
+
+db.from("completion_reports")
+.select("*")
+.order("created_at",{ascending:false})
+
+]);
+
+if(workersResult.error)console.error(workersResult.error);
+if(hotelsResult.error)console.error(hotelsResult.error);
+if(assignmentsResult.error)console.error(assignmentsResult.error);
+if(tripsResult.error)console.error(tripsResult.error);
+if(otherPlacesResult.error)console.error(otherPlacesResult.error);
+
+workers=(workersResult.data || []).map(row=>({
+...row,
+id:String(row.id)
+}));
+
+hotels=(hotelsResult.data || []).map(row=>({
+...row,
+id:String(row.id)
+}));
+
+assignments=assignmentsResult.error
+? []
+: (assignmentsResult.data || []).map(assignmentFromDatabase);
+
+localStorage.setItem(
+"hotelAssignments",
+JSON.stringify(assignments)
+);
+
+trips=tripsResult.data || [];
+
+otherPlaces=(otherPlacesResult.data || []).map(row=>({
+id:String(row.id),
+place:row.place || "",
+type:row.type || "",
+startDate:row.start_date || "",
+endDate:row.end_date || "",
+date:row.date || "",
+workers:row.workers || "",
+hours:Number(row.hours || 0),
+tasks:row.tasks || "",
+materials:row.materials || "",
+photos:Array.isArray(row.photos) ? row.photos : [],
+notes:row.notes || ""
+}));
+
+if(remindersResult.error){
+
+console.error(remindersResult.error);
+alert(t("loadError"));
+
+}else{
+
+let reminderRows=remindersResult.data || [];
+
+if(
+reminderRows.length===0 &&
+oldReminderReports.length>0
+){
+
+const rows=oldReminderReports.map(item=>({
+id:String(item.id || newId()),
+date:item.date || "",
+worker:item.worker || "",
+place:item.place || "",
+start_time:item.start || "",
+sent:item.sent || "no",
+status:item.status || "pending"
+}));
+
+const {error}=await db
+.from("reminder_reports")
+.upsert(rows);
+
+if(error){
+console.error(error);
+}else{
+
+const reload=await db
+.from("reminder_reports")
+.select("*")
+.order("created_at",{ascending:false});
+
+if(!reload.error){
+reminderRows=reload.data || [];
+}
+}
+
+}
+
+reminderReports=reminderRows.map(row=>({
+id:String(row.id),
+date:row.date || "",
+worker:row.worker || "",
+place:row.place || "",
+start:row.start_time || "",
+sent:row.sent || "no",
+status:row.status || "pending"
+}));
+
+localStorage.setItem(
+"reminderReports",
+JSON.stringify(reminderReports)
+);
+}
+
+if(completionsResult.error){
+
+console.error(completionsResult.error);
+alert(t("loadError"));
+
+}else{
+
+let completionRows=completionsResult.data || [];
+
+if(
+completionRows.length===0 &&
+oldCompletionReports.length>0
+){
+
+const rows=oldCompletionReports.map(item=>({
+id:String(item.id || newId()),
+date:item.date || "",
+worker:item.worker || "",
+place:item.place || "",
+start_time:item.start || "",
+end_time:item.end || "",
+hours:Number(item.hours || 0),
+rooms:Number(item.rooms || 0),
+delay:Number(item.delay || 0),
+status:item.status || "incomplete",
+tasks:item.tasks || "",
+materials:item.materials || ""
+}));
+
+const {error}=await db
+.from("completion_reports")
+.upsert(rows);
+
+if(error){
+console.error(error);
+}else{
+
+const reload=await db
+.from("completion_reports")
+.select("*")
+.order("created_at",{ascending:false});
+
+if(!reload.error){
+completionRows=reload.data || [];
+}
+}
+
+}
+
+completionReports=completionRows.map(row=>({
+id:String(row.id),
+date:row.date || "",
+worker:row.worker || "",
+place:row.place || "",
+start:row.start_time || "",
+end:row.end_time || "",
+hours:Number(row.hours || 0),
+rooms:Number(row.rooms || 0),
+delay:Number(row.delay || 0),
+status:row.status || "incomplete",
+tasks:row.tasks || "",
+materials:row.materials || ""
+}));
+
+localStorage.setItem(
+"completionReports",
+JSON.stringify(completionReports)
+);
+}
+
+renderAll();
+}function getWorkData(){
+
+const result=[];
+
+
+/* =========================
+   أعمال الفنادق
+========================= */
+
+assignments.forEach(item=>{
+
+const worker=workers.find(
+w=>String(w.id)===String(item.workerId)
+);
+
+const hotel=hotels.find(
+h=>String(h.id)===String(item.hotelId)
+);
+
+result.push({
+date:item.date || "",
+worker:worker ? worker.name : "",
+place:hotel ? hotel.name : "",
+start:item.start || "",
+end:item.end || "",
+hours:calculateHours(item.start,item.end),
+rooms:Array.isArray(item.rooms)
+? item.rooms.length
+: Number(item.roomCount || 0),
+status:item.completed ? "completed" : "incomplete",
+delay:Number(item.delay || 0)
+});
+
+});
+
+
+/* =========================
+   أعمال القطارات
+========================= */
+
+trips.forEach(item=>{
+
+let workerNames=[];
+
+const ids=
+Array.isArray(item.worker_ids)
+? item.worker_ids.map(String)
+: [];
+
+ids.forEach(workerId=>{
+
+const worker=workers.find(
+w=>String(w.id)===String(workerId)
+);
+
+if(worker && worker.name){
+workerNames.push(worker.name);
+}
+});
+
+if(!workerNames.length){
+
+[
+item.worker1_id,
+item.worker2_id,
+item.worker_id
+]
+.filter(Boolean)
+.forEach(workerId=>{
+
+const worker=workers.find(
+w=>String(w.id)===String(workerId)
+);
+
+if(
+worker &&
+worker.name &&
+!workerNames.includes(worker.name)
+){
+workerNames.push(worker.name);
+}
+});
+
+}
+
+result.push({
+date:item.date || "",
+worker:workerNames.join(" + "),
+place:item.trip_number
+? `Train ${item.trip_number}`
+: "Train",
+start:item.time || "",
+end:"",
+hours:(Number(item.duration || 0))/60,
+rooms:0,
+status:item.status==="completed"
+? "completed"
+: "incomplete",
+delay:Number(item.delay || 0)
+});
+
+});
+
+
+/* =========================
+   الأماكن الأخرى
+========================= */
+
+otherPlaces.forEach(item=>{
+
+result.push({
+date:item.startDate || item.date || "",
+worker:item.workers || "",
+place:item.place || "",
+start:"",
+end:"",
+hours:Number(item.hours || 0),
+rooms:0,
+status:"completed",
+delay:0
+});
+
+});
+
+return result;
+}
+
+
+function getFilteredWorkData(){
+
+const data=getWorkData();
+
+const from=document.getElementById("fromDate").value;
+const to=document.getElementById("toDate").value;
+
+const worker=document
+.getElementById("workerFilter")
+.value
+.trim()
+.toLowerCase();
+
+const place=document
+.getElementById("placeFilter")
+.value
+.trim()
+.toLowerCase();
+
+return data.filter(item=>{
+
+if(from && item.date && item.date<from){
+return false;
+}
+
+if(to && item.date && item.date>to){
+return false;
+}
+
+if(
+worker &&
+!String(item.worker || "")
+.toLowerCase()
+.includes(worker)
+){
+return false;
+}
+
+if(
+place &&
+!String(item.place || "")
+.toLowerCase()
+.includes(place)
+){
+return false;
+}
+
+return true;
+});
+}
+
+
+/* =========================
+   التقرير العام
+========================= */
+
+function renderGeneral(){
+
+const data=getFilteredWorkData();
+
+const tbody=
+document.getElementById("generalTable");
+
+tbody.innerHTML="";
+
+document
+.getElementById("generalEmpty")
+.classList.toggle("hidden",data.length>0);
+
+data.forEach(item=>{
+
+const tr=document.createElement("tr");
+
+tr.innerHTML=`
+<td>${escapeHtml(item.date || t("noValue"))}</td>
+<td>${escapeHtml(item.worker || t("noValue"))}</td>
+<td>${escapeHtml(item.place || t("noValue"))}</td>
+<td>${escapeHtml(item.start || t("noValue"))}</td>
+<td>${escapeHtml(item.end || t("noValue"))}</td>
+<td>${Number(Number(item.hours || 0).toFixed(2))}</td>
+<td>${Number(item.rooms || 0)}</td>
+
+<td>
+<span class="badge ${
+item.status==="completed"
+? "badge-green"
+: "badge-red"
+}">
+${
+item.status==="completed"
+? escapeHtml(t("completed"))
+: escapeHtml(t("incomplete"))
+}
+</span>
+</td>
+
+<td>
+${Number(item.delay || 0)}
+${escapeHtml(t("minutes"))}
+</td>
+`;
+
+tbody.appendChild(tr);
+});
+
+updateStats(data);
+}
+
+
+function updateStats(data){
+
+const workerSet=new Set();
+
+data.forEach(item=>{
+
+String(item.worker || "")
+.split(/\s*\+\s*|،|,/)
+.map(x=>x.trim())
+.filter(Boolean)
+.forEach(name=>workerSet.add(name));
+
+});
+
+const completed=data.filter(
+item=>item.status==="completed"
+).length;
+
+const incomplete=data.filter(
+item=>item.status!=="completed"
+).length;
+
+const hours=data.reduce(
+(sum,item)=>sum+Number(item.hours || 0),
+0
+);
+
+const delay=data.reduce(
+(sum,item)=>sum+Number(item.delay || 0),
+0
+);
+
+document.getElementById("statWorkers").textContent=
+workerSet.size;
+
+document.getElementById("statJobs").textContent=
+data.length;
+
+document.getElementById("statCompleted").textContent=
+completed;
+
+document.getElementById("statIncomplete").textContent=
+incomplete;
+
+document.getElementById("statHours").textContent=
+Number(hours.toFixed(2));
+
+document.getElementById("statDelay").textContent=
+Number(delay.toFixed(0));
+}
+
+
+/* =========================
+   إضافة تقرير تذكير
+========================= */
+
+async function addReminderReport(){
+
+const item={
+id:newId(),
+date:document.getElementById("rDate").value,
+worker:document.getElementById("rWorker").value.trim(),
+place:document.getElementById("rPlace").value.trim(),
+start:document.getElementById("rStart").value,
+sent:document.getElementById("rSent").value,
+status:document.getElementById("rStatus").value
+};
+
+const {error}=await db
+.from("reminder_reports")
+.insert({
+id:item.id,
+date:item.date,
+worker:item.worker,
+place:item.place,
+start_time:item.start,
+sent:item.sent,
+status:item.status
+});
+
+if(error){
+console.error(error);
+alert(t("saveError"));
+return;
+}
+
+reminderReports.unshift(item);
+
+localStorage.setItem(
+"reminderReports",
+JSON.stringify(reminderReports)
+);
+
+document.getElementById("rDate").value="";
+document.getElementById("rWorker").value="";
+document.getElementById("rPlace").value="";
+document.getElementById("rStart").value="";
+
+alert(t("added"));
+
+renderReminder();
+}
+
+
+function renderReminder(){
+
+const tbody=
+document.getElementById("reminderTable");
+
+tbody.innerHTML="";
+
+document
+.getElementById("reminderEmpty")
+.classList.toggle(
+"hidden",
+reminderReports.length>0
+);
+
+reminderReports.forEach(item=>{
+
+let statusText=t("pending");
+let statusClass="badge-yellow";
+
+if(item.status==="done"){
+statusText=t("completed");
+statusClass="badge-green";
+}
+
+if(item.status==="cancelled"){
+statusText=t("cancelled");
+statusClass="badge-red";
+}
+
+const tr=document.createElement("tr");
+
+tr.innerHTML=`
+<td>${escapeHtml(item.date || t("noValue"))}</td>
+<td>${escapeHtml(item.worker || t("noValue"))}</td>
+<td>${escapeHtml(item.place || t("noValue"))}</td>
+<td>${escapeHtml(item.start || t("noValue"))}</td>
+
+<td>
+${item.sent==="yes"
+? escapeHtml(t("yes"))
+: escapeHtml(t("no"))}
+</td>
+
+<td>
+<span class="badge ${statusClass}">
+${escapeHtml(statusText)}
+</span>
+</td>
+
+<td>
+<button
+class="btn-danger"
+onclick="deleteReminder('${String(item.id).replace(/'/g,"\\'")}')">
+${escapeHtml(t("delete"))}
+</button>
+</td>
+`;
+
+tbody.appendChild(tr);
+});
+}
+
+
+async function deleteReminder(reportId){
+
+if(!confirm(t("confirmDelete"))){
+return;
+}
+
+const {error}=await db
+.from("reminder_reports")
+.delete()
+.eq("id",String(reportId));
+
+if(error){
+console.error(error);
+alert(t("deleteError"));
+return;
+}
+
+reminderReports=reminderReports.filter(
+item=>String(item.id)!==String(reportId)
+);
+
+localStorage.setItem(
+"reminderReports",
+JSON.stringify(reminderReports)
+);
+
+renderReminder();
+}
+
+
+/* =========================
+   إضافة تقرير إنجاز
+========================= */
+
+async function addCompletionReport(){
+
+const item={
+id:newId(),
+date:document.getElementById("cDate").value,
+worker:document.getElementById("cWorker").value.trim(),
+place:document.getElementById("cPlace").value.trim(),
+start:document.getElementById("cStart").value,
+end:document.getElementById("cEnd").value,
+hours:Number(
+document.getElementById("cHours").value
+) || 0,
+rooms:Number(
+document.getElementById("cRooms").value
+) || 0,
+delay:Number(
+document.getElementById("cDelay").value
+) || 0,
+status:document.getElementById("cStatus").value,
+tasks:document.getElementById("cTasks").value.trim(),
+materials:document.getElementById("cMaterials").value.trim()
+};
+
+const {error}=await db
+.from("completion_reports")
+.insert({
+id:item.id,
+date:item.date,
+worker:item.worker,
+place:item.place,
+start_time:item.start,
+end_time:item.end,
+hours:item.hours,
+rooms:item.rooms,
+delay:item.delay,
+status:item.status,
+tasks:item.tasks,
+materials:item.materials
+});
+
+if(error){
+console.error(error);
+alert(t("saveError"));
+return;
+}
+
+completionReports.unshift(item);
+
+localStorage.setItem(
+"completionReports",
+JSON.stringify(completionReports)
+);
+
+document.getElementById("cDate").value="";
+document.getElementById("cWorker").value="";
+document.getElementById("cPlace").value="";
+document.getElementById("cStart").value="";
+document.getElementById("cEnd").value="";
+document.getElementById("cHours").value="";
+document.getElementById("cRooms").value="";
+document.getElementById("cDelay").value="";
+document.getElementById("cTasks").value="";
+document.getElementById("cMaterials").value="";
+
+alert(t("added"));
+
+renderCompletion();
+}
+
+
+function renderCompletion(){
+
+const tbody=
+document.getElementById("completionTable");
+
+tbody.innerHTML="";
+
+document
+.getElementById("completionEmpty")
+.classList.toggle(
+"hidden",
+completionReports.length>0
+);
+
+completionReports.forEach(item=>{
+
+const completed=
+item.status==="completed";
+
+const tr=document.createElement("tr");
+
+tr.innerHTML=`
+<td>${escapeHtml(item.date || t("noValue"))}</td>
+<td>${escapeHtml(item.worker || t("noValue"))}</td>
+<td>${escapeHtml(item.place || t("noValue"))}</td>
+<td>${escapeHtml(item.tasks || t("noValue"))}</td>
+<td>${Number(item.rooms || 0)}</td>
+<td>${escapeHtml(item.start || t("noValue"))}</td>
+<td>${escapeHtml(item.end || t("noValue"))}</td>
+<td>${Number(item.hours || 0)}</td>
+
+<td>
+<span class="badge ${
+completed
+? "badge-green"
+: "badge-red"
+}">
+${
+completed
+? escapeHtml(t("completed"))
+: escapeHtml(t("incomplete"))
+}
+</span>
+</td>
+
+<td>
+${Number(item.delay || 0)}
+${escapeHtml(t("minutes"))}
+</td>
+
+<td>
+${escapeHtml(item.materials || t("noValue"))}
+</td>
+
+<td>
+<button
+class="btn-danger"
+onclick="deleteCompletion('${String(item.id).replace(/'/g,"\\'")}')">
+${escapeHtml(t("delete"))}
+</button>
+</td>
+`;
+
+tbody.appendChild(tr);
+});
+}
+
+
+async function deleteCompletion(reportId){
+
+if(!confirm(t("confirmDelete"))){
+return;
+}
+
+const {error}=await db
+.from("completion_reports")
+.delete()
+.eq("id",String(reportId));
+
+if(error){
+console.error(error);
+alert(t("deleteError"));
+return;
+}
+
+completionReports=completionReports.filter(
+item=>String(item.id)!==String(reportId)
+);
+
+localStorage.setItem(
+"completionReports",
+JSON.stringify(completionReports)
+);
+
+renderCompletion();
+}
+
+
+/* =========================
+   عرض الكل
+========================= */
+
+function renderAll(){
+renderGeneral();
+renderReminder();
+renderCompletion();
+}
+
+
+/* =========================
+   تشغيل الصفحة
+========================= */
+
+async function startPage(){
+
+const {data:{session},error}=
+await db.auth.getSession();
+
+if(error || !session){
+window.location.href="login.html";
+return;
+}
+
+await loadData();
+
+applyLanguage();
+
+showReport("general");
+}
+
+startPage();
+
+</script>
+</body>
+</html>

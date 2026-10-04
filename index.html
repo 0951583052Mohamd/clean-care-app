@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clean & Care</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Arial,Tahoma,sans-serif;
+  background:#f4f6f8;
+  color:#222;
+}
+
+header{
+  background:#1f2937;
+  color:white;
+  padding:18px;
+}
+
+.header-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+header h1{
+  margin:0;
+  font-size:25px;
+}
+
+.manager{
+  margin-top:10px;
+  color:#d1d5db;
+}
+
+.header-buttons{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+button{
+  border:0;
+  border-radius:8px;
+  padding:10px 15px;
+  cursor:pointer;
+  font-size:14px;
+  background:#2563eb;
+  color:white;
+}
+
+button:hover{
+  opacity:.9;
+}
+
+.logout{
+  background:#dc2626;
+}
+
+.language{
+  background:#6b7280;
+}
+
+.container{
+  max-width:1200px;
+  margin:25px auto;
+  padding:0 15px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:18px;
+}
+
+.card{
+  background:white;
+  border-radius:14px;
+  padding:22px;
+  box-shadow:0 2px 10px rgba(0,0,0,.08);
+  cursor:pointer;
+  transition:.2s;
+}
+
+.card:hover{
+  transform:translateY(-2px);
+  box-shadow:0 5px 15px rgba(0,0,0,.12);
+}
+
+.card-icon{
+  font-size:32px;
+  margin-bottom:10px;
+}
+
+.card h2{
+  margin:0 0 8px;
+  font-size:20px;
+}
+
+.card p{
+  margin:0;
+  color:#6b7280;
+  line-height:1.5;
+}
+
+.hidden{
+  display:none!important;
+}
+
+.no-permission{
+  text-align:center;
+  padding:40px;
+  background:white;
+  border-radius:12px;
+  color:#777;
+}
+
+@media(max-width:600px){
+
+  .header-top{
+    align-items:stretch;
+  }
+
+  .header-buttons{
+    width:100%;
+  }
+
+  .header-buttons button{
+    flex:1;
+  }
+
+  .container{
+    padding:0 10px;
+  }
+
+}
+</style>
+</head>
+
+<body>
+
+<header>
+
+  <div class="header-top">
+
+    <h1>
+      Clean & Care
+    </h1>
+
+    <div class="header-buttons">
+
+      <button
+        onclick="toggleLanguage()"
+        class="language"
+        id="languageBtn"
+      >
+        Deutsch
+      </button>
+
+      <button
+        onclick="logout()"
+        class="logout"
+        id="logoutBtn"
+      >
+        تسجيل الخروج
+      </button>
+
+    </div>
+
+  </div>
+
+  <div
+    class="manager"
+    id="managerText"
+  >
+    مرحباً
+  </div>
+
+</header>
+
+
+<div class="container">
+
+  <div
+    id="noPermission"
+    class="no-permission hidden"
+  >
+    لا توجد لديك صلاحيات لعرض أي قسم.
+  </div>
+
+
+  <div
+    class="grid"
+    id="cards"
+  >
+
+    <!-- العمال -->
+
+    <div
+      class="card"
+      data-permission="workers"
+      onclick="openPage('workers.html')"
+    >
+
+      <div class="card-icon">👷</div>
+
+      <h2 id="workersTitle">
+        العمال
+      </h2>
+
+      <p id="workersText">
+        إدارة العمال وساعات العمل والمهام
+      </p>
+
+    </div>
+
+
+    <!-- الفنادق -->
+
+    <div
+      class="card"
+      data-permission="hotels"
+      onclick="openPage('hotels.html')"
+    >
+
+      <div class="card-icon">🏨</div>
+
+      <h2 id="hotelsTitle">
+        الفنادق
+      </h2>
+
+      <p id="hotelsText">
+        إدارة الفنادق والغرف والمداخل
+      </p>
+
+    </div>
+
+
+    <!-- القطارات -->
+
+    <div
+      class="card"
+      data-permission="trains"
+      onclick="openPage('trains.html')"
+    >
+
+      <div class="card-icon">🚆</div>
+
+      <h2 id="trainsTitle">
+        القطارات
+      </h2>
+
+      <p id="trainsText">
+        إدارة رحلات القطارات والعمل عليها
+      </p>
+
+    </div>
+
+
+    <!-- المخزون -->
+
+    <div
+      class="card"
+      data-permission="inventory"
+      onclick="openPage('inventory.html')"
+    >
+
+      <div class="card-icon">📦</div>
+
+      <h2 id="inventoryTitle">
+        المخزون
+      </h2>
+
+      <p id="inventoryText">
+        إدارة المواد والكميات والمخزون
+      </p>
+
+    </div>
+
+
+    <!-- قواعد المواد -->
+
+    <div
+      class="card"
+      data-permission="rules"
+      onclick="openPage('material-rules.html')"
+    >
+
+      <div class="card-icon">📋</div>
+
+      <h2 id="rulesTitle">
+        قواعد المواد
+      </h2>
+
+      <p id="rulesText">
+        تحديد المواد المطلوبة لكل نوع من الأعمال
+      </p>
+
+    </div>
+
+
+    <!-- الإصلاحات -->
+
+    <div
+      class="card"
+      data-permission="repairs"
+      onclick="openPage('repairs.html')"
+    >
+
+      <div class="card-icon">🔧</div>
+
+      <h2 id="repairsTitle">
+        الإصلاحات
+      </h2>
+
+      <p id="repairsText">
+        تسجيل الإصلاحات والتذاكر وساعات العمل
+      </p>
+
+    </div>
+
+
+    <!-- الفواتير -->
+
+    <div
+      class="card"
+      data-permission="invoices"
+      onclick="openPage('invoices.html')"
+    >
+
+      <div class="card-icon">🧾</div>
+
+      <h2 id="invoicesTitle">
+        الفواتير
+      </h2>
+
+      <p id="invoicesText">
+        إدارة الفواتير والمستندات
+      </p>
+
+    </div>
+
+
+    <!-- أماكن أخرى -->
+
+    <div
+      class="card"
+      data-permission="otherPlaces"
+      onclick="openPage('other-places.html')"
+    >
+
+      <div class="card-icon">📍</div>
+
+      <h2 id="otherPlacesTitle">
+        أماكن أخرى
+      </h2>
+
+      <p id="otherPlacesText">
+        إدارة الأعمال خارج الفنادق
+      </p>
+
+    </div>
+
+
+    <!-- التقارير -->
+
+    <div
+      class="card"
+      data-permission="reports"
+      onclick="openPage('reports.html')"
+    >
+
+      <div class="card-icon">📊</div>
+
+      <h2 id="reportsTitle">
+        التقارير
+      </h2>
+
+      <p id="reportsText">
+        التقارير العامة وتقرير إنجاز العمل
+      </p>
+
+    </div>
+
+
+    <!-- المدراء -->
+
+    <div
+      class="card"
+      data-permission="managers"
+      onclick="openPage('managers.html')"
+    >
+
+      <div class="card-icon">👤</div>
+
+      <h2 id="managersTitle">
+        المدراء
+      </h2>
+
+      <p id="managersText">
+        إدارة المدراء والصلاحيات
+      </p>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<script>
+
+/* =========================
+   اللغة
+========================= */
+
+let language =
+  localStorage.getItem("appLanguage") || "ar";
+
+
+const translations={
+
+  ar:{
+
+    languageBtn:"Deutsch",
+    logoutBtn:"تسجيل الخروج",
+
+    hello:"مرحباً",
+
+    noPermission:
+      "لا توجد لديك صلاحيات لعرض أي قسم.",
+
+    workersTitle:"العمال",
+    workersText:
+      "إدارة العمال وساعات العمل والمهام",
+
+    hotelsTitle:"الفنادق",
+    hotelsText:
+      "إدارة الفنادق والغرف والمداخل",
+
+    trainsTitle:"القطارات",
+    trainsText:
+      "إدارة رحلات القطارات والعمل عليها",
+
+    inventoryTitle:"المخزون",
+    inventoryText:
+      "إدارة المواد والكميات والمخزون",
+
+    rulesTitle:"قواعد المواد",
+    rulesText:
+      "تحديد المواد المطلوبة لكل نوع من الأعمال",
+
+    repairsTitle:"الإصلاحات",
+    repairsText:
+      "تسجيل الإصلاحات والتذاكر وساعات العمل",
+
+    invoicesTitle:"الفواتير",
+    invoicesText:
+      "إدارة الفواتير والمستندات",
+
+    otherPlacesTitle:"أماكن أخرى",
+    otherPlacesText:
+      "إدارة الأعمال خارج الفنادق",
+
+    reportsTitle:"التقارير",
+    reportsText:
+      "التقارير العامة وتقرير إنجاز العمل",
+
+    managersTitle:"المدراء",
+    managersText:
+      "إدارة المدراء والصلاحيات"
+
+  },
+
+  de:{
+
+    languageBtn:"العربية",
+    logoutBtn:"Abmelden",
+
+    hello:"Willkommen",
+
+    noPermission:
+      "Sie haben keine Berechtigung, einen Bereich anzuzeigen.",
+
+    workersTitle:"Mitarbeiter",
+    workersText:
+      "Mitarbeiter, Arbeitszeiten und Aufgaben verwalten",
+
+    hotelsTitle:"Hotels",
+    hotelsText:
+      "Hotels, Zimmer und Eingänge verwalten",
+
+    trainsTitle:"Züge",
+    trainsText:
+      "Zugfahrten und Arbeiten verwalten",
+
+    inventoryTitle:"Lager",
+    inventoryText:
+      "Materialien, Mengen und Lagerbestand verwalten",
+
+    rulesTitle:"Materialregeln",
+    rulesText:
+      "Benötigte Materialien für verschiedene Arbeiten festlegen",
+
+    repairsTitle:"Reparaturen",
+    repairsText:
+      "Reparaturen, Tickets und Arbeitsstunden verwalten",
+
+    invoicesTitle:"Rechnungen",
+    invoicesText:
+      "Rechnungen und Dokumente verwalten",
+
+    otherPlacesTitle:"Andere Orte",
+    otherPlacesText:
+      "Arbeiten außerhalb der Hotels verwalten",
+
+    reportsTitle:"Berichte",
+    reportsText:
+      "Allgemeine Berichte und Arbeitsabschlussberichte",
+
+    managersTitle:"Manager",
+    managersText:
+      "Manager und Berechtigungen verwalten"
+
+  }
+
+};
+
+
+function t(key){
+
+  return translations[language][key] || key;
+
+}
+
+
+/* =========================
+   المدير المسجل
+========================= */
+
+function getLoggedManager(){
+
+  try{
+
+    return JSON.parse(
+      localStorage.getItem(
+        "loggedInManager"
+      ) || "null"
+    );
+
+  }catch(e){
+
+    return null;
+
+  }
+
+}
+
+
+const manager =
+  getLoggedManager();
+
+
+/* =========================
+   حماية الصفحة
+========================= */
+
+if(!manager){
+
+  window.location.href="login.html";
+
+}
+
+
+/* =========================
+   الصلاحيات
+========================= */
+
+function hasPermission(permission){
+
+  if(!manager)
+    return false;
+
+  const permissions =
+    Array.isArray(manager.permissions)
+      ? manager.permissions
+      : [];
+
+  return permissions.includes(permission);
+
+}
+
+
+function applyPermissions(){
+
+  const cards =
+    document.querySelectorAll(
+      "[data-permission]"
+    );
+
+
+  let visibleCount=0;
+
+
+  cards.forEach(card=>{
+
+    const permission =
+      card.dataset.permission;
+
+
+    if(hasPermission(permission)){
+
+      card.classList.remove("hidden");
+
+      visibleCount++;
+
+    }else{
+
+      card.classList.add("hidden");
+
+    }
+
+  });
+
+
+  if(visibleCount===0){
+
+    document
+      .getElementById("noPermission")
+      .classList.remove("hidden");
+
+  }else{
+
+    document
+      .getElementById("noPermission")
+      .classList.add("hidden");
+
+  }
+
+}
+
+
+/* =========================
+   فتح الصفحات
+========================= */
+
+function openPage(page){
+
+  const permissionMap={
+
+    "workers.html":"workers",
+    "hotels.html":"hotels",
+    "trains.html":"trains",
+    "inventory.html":"inventory",
+    "material-rules.html":"rules",
+    "repairs.html":"repairs",
+    "invoices.html":"invoices",
+    "other-places.html":"otherPlaces",
+    "reports.html":"reports",
+    "managers.html":"managers"
+
+  };
+
+
+  const permission =
+    permissionMap[page];
+
+
+  if(!hasPermission(permission)){
+
+    return;
+
+  }
+
+
+  window.location.href=page;
+
+}
+
+
+/* =========================
+   تسجيل الخروج
+========================= */
+
+function logout(){
+
+  localStorage.removeItem(
+    "loggedInManager"
+  );
+
+  window.location.href="login.html";
+
+}
+
+
+/* =========================
+   اللغة
+========================= */
+
+function applyLanguage(){
+
+  document.documentElement.lang=
+    language;
+
+  document.documentElement.dir=
+    language==="ar"
+      ? "rtl"
+      : "ltr";
+
+
+  const tr=
+    translations[language];
+
+
+  Object.keys(tr).forEach(key=>{
+
+    const el=
+      document.getElementById(key);
+
+    if(el){
+
+      el.textContent=
+        tr[key];
+
+    }
+
+  });
+
+
+  if(manager){
+
+    document.getElementById(
+      "managerText"
+    ).textContent =
+      `${t("hello")}، ${
+        manager.name ||
+        manager.username ||
+        ""
+      }`;
+
+  }
+
+}
+
+
+function toggleLanguage(){
+
+  language=
+    language==="ar"
+      ? "de"
+      : "ar";
+
+
+  localStorage.setItem(
+    "appLanguage",
+    language
+  );
+
+
+  applyLanguage();
+
+}
+
+
+/* =========================
+   تشغيل
+========================= */
+
+applyLanguage();
+
+applyPermissions();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clean & Care - Login</title>
+
+<style>
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:Arial,Tahoma,sans-serif;
+  background:#f4f6f8;
+}
+
+.login-box{
+  width:90%;
+  max-width:420px;
+  background:white;
+  padding:30px;
+  border-radius:16px;
+  box-shadow:0 5px 20px rgba(0,0,0,.12);
+}
+
+.logo{
+  text-align:center;
+  font-size:28px;
+  font-weight:bold;
+  margin-bottom:25px;
+  color:#1f2937;
+}
+
+label{
+  display:block;
+  margin:15px 0 7px;
+  font-weight:bold;
+}
+
+input{
+  width:100%;
+  padding:13px;
+  border:1px solid #d1d5db;
+  border-radius:8px;
+  font-size:16px;
+}
+
+.login-button{
+  width:100%;
+  margin-top:22px;
+  padding:13px;
+  border:0;
+  border-radius:8px;
+  background:#2563eb;
+  color:white;
+  font-size:17px;
+  cursor:pointer;
+}
+
+.login-button:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+}
+
+.language-button{
+  width:100%;
+  margin-top:10px;
+  padding:10px;
+  border:0;
+  border-radius:8px;
+  background:#6b7280;
+  color:white;
+  cursor:pointer;
+}
+
+.message{
+  margin-top:15px;
+  text-align:center;
+  color:#dc2626;
+  min-height:22px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="login-box">
+
+  <div class="logo">
+    Clean & Care
+  </div>
+
+  <label id="emailLabel">
+    البريد الإلكتروني
+  </label>
+
+  <input
+    type="email"
+    id="email"
+    autocomplete="email"
+  >
+
+  <label id="passwordLabel">
+    كلمة المرور
+  </label>
+
+  <input
+    type="password"
+    id="password"
+    autocomplete="current-password"
+  >
+
+  <button
+    class="login-button"
+    onclick="login()"
+    id="loginButton"
+  >
+    تسجيل الدخول
+  </button>
+
+  <button
+    class="language-button"
+    onclick="toggleLanguage()"
+    id="languageButton"
+  >
+    Deutsch
+  </button>
+
+  <div
+    class="message"
+    id="message"
+  ></div>
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+const SUPABASE_URL =
+  "https://vjllurkvzvumsfjxuxuz.supabase.co";
+
+const SUPABASE_PUBLISHABLE_KEY =
+  "sb_publishable_4TiwsqWNph3wQzdoASlasg_gh4x1Atz";
+
+const supabaseClient =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+  );
+
+
+let language =
+  localStorage.getItem("appLanguage") || "ar";
+
+
+const texts = {
+
+  ar:{
+    email:"البريد الإلكتروني",
+    password:"كلمة المرور",
+    login:"تسجيل الدخول",
+    loggingIn:"جاري تسجيل الدخول...",
+    language:"Deutsch",
+    required:"أدخل البريد الإلكتروني وكلمة المرور",
+    wrong:"البريد الإلكتروني أو كلمة المرور غير صحيحة",
+    inactive:"هذا الحساب غير فعال",
+    noProfile:"لم يتم إعداد صلاحيات هذا الحساب بعد",
+    error:"حدث خطأ أثناء تسجيل الدخول"
+  },
+
+  de:{
+    email:"E-Mail",
+    password:"Passwort",
+    login:"Anmelden",
+    loggingIn:"Anmeldung läuft...",
+    language:"العربية",
+    required:"E-Mail und Passwort eingeben",
+    wrong:"E-Mail oder Passwort ist falsch",
+    inactive:"Dieses Konto ist nicht aktiv",
+    noProfile:"Die Berechtigungen für dieses Konto wurden noch nicht eingerichtet",
+    error:"Fehler bei der Anmeldung"
+  }
+
+};
+
+
+function applyLanguage(){
+
+  document.documentElement.lang =
+    language;
+
+  document.documentElement.dir =
+    language === "ar" ? "rtl" : "ltr";
+
+  document.getElementById(
+    "emailLabel"
+  ).textContent =
+    texts[language].email;
+
+  document.getElementById(
+    "passwordLabel"
+  ).textContent =
+    texts[language].password;
+
+  document.getElementById(
+    "loginButton"
+  ).textContent =
+    texts[language].login;
+
+  document.getElementById(
+    "languageButton"
+  ).textContent =
+    texts[language].language;
+
+}
+
+
+function toggleLanguage(){
+
+  language =
+    language === "ar"
+      ? "de"
+      : "ar";
+
+  localStorage.setItem(
+    "appLanguage",
+    language
+  );
+
+  applyLanguage();
+
+}
+
+
+async function login(){
+
+  const email =
+    document.getElementById(
+      "email"
+    ).value.trim();
+
+  const password =
+    document.getElementById(
+      "password"
+    ).value;
+
+  const message =
+    document.getElementById(
+      "message"
+    );
+
+  const button =
+    document.getElementById(
+      "loginButton"
+    );
+
+
+  message.textContent = "";
+
+
+  if(!email || !password){
+
+    message.textContent =
+      texts[language].required;
+
+    return;
+
+  }
+
+
+  button.disabled = true;
+
+  button.textContent =
+    texts[language].loggingIn;
+
+
+  try{
+
+    /* تسجيل الدخول في Supabase */
+
+    const { data, error } =
+      await supabaseClient.auth
+        .signInWithPassword({
+          email:email,
+          password:password
+        });
+
+
+    if(error || !data.user){
+
+      message.textContent =
+        texts[language].wrong;
+
+      return;
+
+    }
+
+
+    /* جلب بيانات وصلاحيات الحساب */
+
+    const {
+      data:profile,
+      error:profileError
+    } =
+      await supabaseClient
+        .from("profiles")
+        .select(
+          "id,name,email,active,permissions,reminder_reports,completion_reports"
+        )
+        .eq("id",data.user.id)
+        .single();
+
+
+    if(profileError || !profile){
+
+      console.error(
+        "Profile error:",
+        profileError
+      );
+
+      await supabaseClient.auth.signOut();
+
+      localStorage.removeItem(
+        "loggedInManager"
+      );
+
+      message.textContent =
+        texts[language].noProfile;
+
+      return;
+
+    }
+
+
+    /* التأكد أن الحساب فعال */
+
+    if(profile.active === false){
+
+      await supabaseClient.auth.signOut();
+
+      localStorage.removeItem(
+        "loggedInManager"
+      );
+
+      message.textContent =
+        texts[language].inactive;
+
+      return;
+
+    }
+
+
+    /* تجهيز الصلاحيات */
+
+    let permissions = [];
+
+    if(Array.isArray(profile.permissions)){
+
+      permissions =
+        profile.permissions;
+
+    }
+
+
+    /* حفظ بيانات المستخدم للبرنامج الحالي */
+
+    const loggedInManager = {
+
+      id:profile.id,
+
+      name:
+        profile.name || "",
+
+      email:
+        profile.email ||
+        data.user.email ||
+        email,
+
+      username:
+        profile.email ||
+        data.user.email ||
+        email,
+
+      permissions:permissions,
+
+      reminderReports:
+        profile.reminder_reports === true,
+
+      completionReports:
+        profile.completion_reports === true
+
+    };
+
+
+    localStorage.setItem(
+      "loggedInManager",
+      JSON.stringify(
+        loggedInManager
+      )
+    );
+
+
+    window.location.href =
+      "index.html";
+
+
+  }catch(error){
+
+    console.error(error);
+
+    message.textContent =
+      texts[language].error;
+
+  }finally{
+
+    button.disabled = false;
+
+    button.textContent =
+      texts[language].login;
+
+  }
+
+}
+
+
+/* الدخول بزر Enter */
+
+document
+  .getElementById("password")
+  .addEventListener(
+    "keydown",
+    function(event){
+
+      if(event.key === "Enter"){
+        login();
+      }
+
+    }
+  );
+
+
+document
+  .getElementById("email")
+  .addEventListener(
+    "keydown",
+    function(event){
+
+      if(event.key === "Enter"){
+        login();
+      }
+
+    }
+  );
+
+
+applyLanguage();
+
+</script>
+
+</body>
+</html>

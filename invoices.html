@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clean & Care - الفواتير</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Tahoma,sans-serif;background:#f4f7fb;color:#1f2937}
+header{background:#123c69;color:white;padding:18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+header h1{margin:0;font-size:24px}
+button{border:0;border-radius:8px;padding:10px 15px;cursor:pointer;font-size:15px;color:white}
+button:hover{opacity:.9}
+.lang-btn{background:#f59e0b}
+.back-btn{background:#64748b}
+.save-btn{background:#123c69}
+.edit-btn{background:#2563eb}
+.delete-btn{background:#dc2626}
+.filter-btn{background:#16a34a}
+.clear-btn{background:#64748b}
+.container{max-width:1250px;margin:20px auto;padding:0 15px}
+.card{background:white;border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.card h2{margin-top:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px}
+.field{display:flex;flex-direction:column;gap:6px}
+label{font-weight:bold}
+input,select,textarea{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px;font-size:15px;background:white}
+textarea{min-height:90px;resize:vertical}
+.file-box{border:2px dashed #cbd5e1;border-radius:10px;padding:15px;background:#f8fafc}
+.preview{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.preview img{width:140px;height:100px;object-fit:cover;border-radius:8px;border:1px solid #cbd5e1}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.stat{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:15px;text-align:center}
+.stat strong{display:block;font-size:25px;margin-top:5px}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end}
+.invoice{border:1px solid #dbe3ec;border-radius:10px;padding:15px;margin-bottom:12px;background:#fafcff}
+.invoice-title{font-size:19px;font-weight:bold;margin-bottom:8px}
+.info{line-height:1.9}
+.badge{display:inline-block;padding:4px 9px;border-radius:20px;background:#e0f2fe;color:#0369a1;margin:3px}
+.amount{font-size:20px;font-weight:bold;margin:10px 0}
+.invoice-photo{width:180px;max-height:180px;object-fit:contain;border:1px solid #cbd5e1;border-radius:8px;margin-top:10px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.empty{text-align:center;padding:30px;color:#64748b}
+.hidden{display:none!important}
+.file-link{display:block;margin-top:10px}
+@media(max-width:650px){header button{width:100%}}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1 id="pageTitle">الفواتير</h1>
+<div>
+<button class="lang-btn" onclick="toggleLanguage()" id="langBtn">Deutsch</button>
+<button class="back-btn" onclick="goBack()" id="backBtn">رجوع</button>
+</div>
+</header>
+
+<div class="container">
+
+<div class="card">
+<h2 id="formTitle">إضافة فاتورة</h2>
+
+<div class="grid">
+
+<div class="field">
+<label id="numberLabel">رقم الفاتورة</label>
+<input id="invoiceNumber" type="text">
+</div>
+
+<div class="field">
+<label id="dateLabel">التاريخ</label>
+<input id="invoiceDate" type="date">
+</div>
+
+<div class="field">
+<label id="supplierLabel">المورد / الشركة</label>
+<input id="supplier" type="text">
+</div>
+
+<div class="field">
+<label id="amountLabel">المبلغ</label>
+<input id="amount" type="number" min="0" step="0.01">
+</div>
+
+<div class="field">
+<label id="currencyLabel">العملة</label>
+<select id="currency">
+<option value="EUR">EUR</option>
+<option value="USD">USD</option>
+<option value="CHF">CHF</option>
+<option value="GBP">GBP</option>
+<option value="OTHER">OTHER</option>
+</select>
+</div>
+
+<div class="field">
+<label id="typeLabel">نوع الفاتورة</label>
+<select id="invoiceType">
+<option value="hotel" id="typeHotel">فندق</option>
+<option value="materials" id="typeMaterials">مواد</option>
+<option value="repair" id="typeRepair">صيانة</option>
+<option value="other" id="typeOther">أخرى</option>
+</select>
+</div>
+
+</div>
+
+<br>
+
+<div class="field">
+<label id="placeLabel">الفندق / المكان</label>
+<select id="places" onchange="changePlace()">
+<option value="">اختر الفندق / المكان</option>
+</select>
+</div>
+
+<div class="field hidden" id="customPlaceBox" style="margin-top:12px">
+<label id="customPlaceLabel">اسم المكان الآخر</label>
+<input id="customPlace" type="text">
+</div>
+
+<br>
+
+<div class="field">
+<label id="notesLabel">ملاحظات</label>
+<textarea id="notes"></textarea>
+</div>
+
+<br>
+
+<div class="file-box">
+<label id="fileLabel">صورة أو ملف الفاتورة</label>
+<br><br>
+<input id="invoiceFile" type="file" accept="image/*,.pdf" onchange="previewFile()">
+<div id="filePreview" class="preview"></div>
+</div>
+
+<br>
+
+<button class="save-btn" onclick="saveInvoice()" id="saveBtn">حفظ الفاتورة</button>
+<button class="back-btn hidden" onclick="cancelEdit()" id="cancelBtn">إلغاء</button>
+</div>
+
+<div class="card">
+<h2 id="statsTitle">الإحصائيات</h2>
+<div class="stats">
+
+<div class="stat">
+<span id="statCountLabel">عدد الفواتير</span>
+<strong id="statCount">0</strong>
+</div>
+
+<div class="stat">
+<span id="statTotalLabel">مجموع EUR</span>
+<strong id="statTotal">0.00</strong>
+</div>
+
+<div class="stat">
+<span id="statPlacesLabel">عدد الأماكن</span>
+<strong id="statPlaces">0</strong>
+</div>
+
+</div>
+</div>
+
+<div class="card">
+<h2 id="filtersTitle">البحث والتصفية</h2>
+
+<div class="filters">
+
+<div class="field">
+<label id="filterMonthLabel">الشهر</label>
+<input id="filterMonth" type="month">
+</div>
+
+<div class="field">
+<label id="filterPlaceLabel">الفندق / المكان</label>
+<input id="filterPlace" type="text">
+</div>
+
+<div class="field">
+<label id="filterSupplierLabel">المورد / الشركة</label>
+<input id="filterSupplier" type="text">
+</div>
+
+<button class="filter-btn" onclick="renderInvoices()" id="filterBtn">بحث</button>
+<button class="clear-btn" onclick="clearFilters()" id="clearBtn">مسح</button>
+
+</div>
+</div>
+
+<div class="card">
+<h2 id="listTitle">الفواتير</h2>
+<div id="invoiceList"></div>
+</div>
+
+</div>
+
+<script>
+const SUPABASE_URL="https://vjllurkvzvumsfjxuxuz.supabase.co";
+const SUPABASE_KEY="sb_publishable_4TiwsqWNph3wQzdoASlasg_gh4x1Atz";
+const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+let lang=localStorage.getItem("appLanguage") || "ar";
+let invoices=[];
+let hotels=[];
+let editId=null;
+let currentFileData="";
+let currentFileName="";
+
+const translations={
+ar:{
+pageTitle:"الفواتير",langBtn:"Deutsch",back:"رجوع",
+formAdd:"إضافة فاتورة",formEdit:"تعديل فاتورة",
+number:"رقم الفاتورة",date:"التاريخ",supplier:"المورد / الشركة",
+amount:"المبلغ",currency:"العملة",type:"نوع الفاتورة",
+place:"الفندق / المكان",choosePlace:"اختر الفندق / المكان",
+otherPlace:"مكان آخر",customPlace:"اسم المكان الآخر",
+notes:"ملاحظات",file:"صورة أو ملف الفاتورة",
+hotel:"فندق",materials:"مواد",repair:"صيانة",other:"أخرى",
+save:"حفظ الفاتورة",update:"تحديث الفاتورة",cancel:"إلغاء",
+stats:"الإحصائيات",count:"عدد الفواتير",total:"مجموع EUR",places:"عدد الأماكن",
+filters:"البحث والتصفية",month:"الشهر",searchPlace:"الفندق / المكان",
+searchSupplier:"المورد / الشركة",search:"بحث",clear:"مسح",list:"الفواتير",
+noInvoices:"لا توجد فواتير.",edit:"تعديل",delete:"حذف",
+confirmDelete:"هل تريد حذف هذه الفاتورة؟",
+saved:"تم حفظ الفاتورة بنجاح.",updated:"تم تحديث الفاتورة بنجاح.",
+required:"يرجى إدخال رقم الفاتورة أو اسم المورد أو المبلغ.",
+saveError:"حدث خطأ أثناء حفظ الفاتورة.",
+deleteError:"حدث خطأ أثناء حذف الفاتورة.",
+loadError:"تعذر تحميل الفواتير.",
+openFile:"فتح الملف",amountText:"المبلغ",supplierText:"المورد",
+placeText:"المكان",dateText:"التاريخ",typeText:"النوع"
+},
+de:{
+pageTitle:"Rechnungen",langBtn:"العربية",back:"Zurück",
+formAdd:"Rechnung hinzufügen",formEdit:"Rechnung bearbeiten",
+number:"Rechnungsnummer",date:"Datum",supplier:"Lieferant / Firma",
+amount:"Betrag",currency:"Währung",type:"Rechnungsart",
+place:"Hotel / Ort",choosePlace:"Hotel / Ort auswählen",
+otherPlace:"Anderer Ort",customPlace:"Name des anderen Ortes",
+notes:"Notizen",file:"Rechnungsbild oder Datei",
+hotel:"Hotel",materials:"Material",repair:"Reparatur",other:"Andere",
+save:"Rechnung speichern",update:"Rechnung aktualisieren",cancel:"Abbrechen",
+stats:"Statistik",count:"Anzahl Rechnungen",total:"Gesamt EUR",places:"Anzahl Orte",
+filters:"Suche und Filter",month:"Monat",searchPlace:"Hotel / Ort",
+searchSupplier:"Lieferant / Firma",search:"Suchen",clear:"Löschen",list:"Rechnungen",
+noInvoices:"Keine Rechnungen vorhanden.",edit:"Bearbeiten",delete:"Löschen",
+confirmDelete:"Möchten Sie diese Rechnung löschen?",
+saved:"Die Rechnung wurde erfolgreich gespeichert.",
+updated:"Die Rechnung wurde erfolgreich aktualisiert.",
+required:"Bitte Rechnungsnummer, Lieferant oder Betrag eingeben.",
+saveError:"Fehler beim Speichern der Rechnung.",
+deleteError:"Fehler beim Löschen der Rechnung.",
+loadError:"Rechnungen konnten nicht geladen werden.",
+openFile:"Datei öffnen",amountText:"Betrag",supplierText:"Lieferant",
+placeText:"Ort",dateText:"Datum",typeText:"Art"
+}
+};
+
+function t(key){
+return translations[lang][key] || key;
+}
+
+function newId(){
+return Date.now().toString()+Math.random().toString(16).slice(2);
+}
+
+async function loadHotels(){
+const {data,error}=await db
+.from("hotels")
+.select("id,name,city")
+.order("name",{ascending:true});
+
+if(error){
+console.error(error);
+hotels=[];
+}else{
+hotels=data || [];
+}
+
+renderPlaceOptions();
+}
+
+function renderPlaceOptions(selectedValue=""){
+const select=document.getElementById("places");
+if(!select)return;
+
+select.innerHTML="";
+
+const first=document.createElement("option");
+first.value="";
+first.textContent=t("choosePlace");
+select.appendChild(first);
+
+hotels.forEach(hotel=>{
+const option=document.createElement("option");
+option.value=hotel.name || "";
+option.textContent=hotel.city ? `${hotel.name} - ${hotel.city}` : hotel.name;
+select.appendChild(option);
+});
+
+const other=document.createElement("option");
+other.value="__OTHER__";
+other.textContent=t("otherPlace");
+select.appendChild(other);
+
+if(selectedValue){
+const exists=hotels.some(h=>String(h.name)===String(selectedValue));
+
+if(exists){
+select.value=selectedValue;
+document.getElementById("customPlaceBox").classList.add("hidden");
+}else{
+select.value="__OTHER__";
+document.getElementById("customPlace").value=selectedValue;
+document.getElementById("customPlaceBox").classList.remove("hidden");
+}
+}else{
+select.value="";
+document.getElementById("customPlaceBox").classList.add("hidden");
+}
+}
+
+function changePlace(){
+const value=document.getElementById("places").value;
+const box=document.getElementById("customPlaceBox");
+
+if(value==="__OTHER__"){
+box.classList.remove("hidden");
+}else{
+box.classList.add("hidden");
+document.getElementById("customPlace").value="";
+}
+}
+
+function getSelectedPlace(){
+const value=document.getElementById("places").value;
+
+if(value==="__OTHER__"){
+return document.getElementById("customPlace").value.trim();
+}
+
+return value.trim();
+}
+
+function invoiceToDatabase(invoice){
+return{
+id:String(invoice.id),
+invoice_number:invoice.invoiceNumber || "",
+date:invoice.date || "",
+supplier:invoice.supplier || "",
+amount:Number(invoice.amount || 0),
+currency:invoice.currency || "EUR",
+type:invoice.type || "other",
+places:invoice.places || "",
+notes:invoice.notes || "",
+file_data:invoice.fileData || "",
+file_name:invoice.fileName || ""
+};
+}
+
+function invoiceFromDatabase(row){
+return{
+id:String(row.id),
+invoiceNumber:row.invoice_number || "",
+date:row.date || "",
+supplier:row.supplier || "",
+amount:Number(row.amount || 0),
+currency:row.currency || "EUR",
+type:row.type || "other",
+places:row.places || "",
+notes:row.notes || "",
+fileData:row.file_data || "",
+fileName:row.file_name || ""
+};
+}
+
+function mirrorInvoicesLocally(){
+localStorage.setItem("invoices",JSON.stringify(invoices));
+}async function loadInvoices(){
+let oldInvoices=[];
+
+try{
+oldInvoices=JSON.parse(localStorage.getItem("invoices") || "[]");
+if(!Array.isArray(oldInvoices))oldInvoices=[];
+}catch(e){
+oldInvoices=[];
+}
+
+const {data,error}=await db
+.from("invoices")
+.select("*")
+.order("created_at",{ascending:false});
+
+if(error){
+console.error(error);
+alert(t("loadError"));
+return;
+}
+
+if((data || []).length===0 && oldInvoices.length>0){
+
+const rows=oldInvoices.map(invoice=>invoiceToDatabase({
+...invoice,
+id:String(invoice.id || newId())
+}));
+
+const {error:migrateError}=await db
+.from("invoices")
+.upsert(rows);
+
+if(!migrateError){
+invoices=oldInvoices.map(invoice=>({
+...invoice,
+id:String(invoice.id)
+}));
+
+mirrorInvoicesLocally();
+renderInvoices();
+return;
+}
+
+console.error(migrateError);
+}
+
+invoices=(data || []).map(invoiceFromDatabase);
+mirrorInvoicesLocally();
+renderInvoices();
+}
+
+function applyLanguage(){
+document.documentElement.lang=lang;
+document.documentElement.dir=lang==="ar"?"rtl":"ltr";
+
+document.getElementById("pageTitle").textContent=t("pageTitle");
+document.getElementById("langBtn").textContent=t("langBtn");
+document.getElementById("backBtn").textContent=t("back");
+
+document.getElementById("formTitle").textContent=
+editId ? t("formEdit") : t("formAdd");
+
+document.getElementById("numberLabel").textContent=t("number");
+document.getElementById("dateLabel").textContent=t("date");
+document.getElementById("supplierLabel").textContent=t("supplier");
+document.getElementById("amountLabel").textContent=t("amount");
+document.getElementById("currencyLabel").textContent=t("currency");
+document.getElementById("typeLabel").textContent=t("type");
+document.getElementById("placeLabel").textContent=t("place");
+document.getElementById("customPlaceLabel").textContent=t("customPlace");
+document.getElementById("notesLabel").textContent=t("notes");
+document.getElementById("fileLabel").textContent=t("file");
+
+document.getElementById("typeHotel").textContent=t("hotel");
+document.getElementById("typeMaterials").textContent=t("materials");
+document.getElementById("typeRepair").textContent=t("repair");
+document.getElementById("typeOther").textContent=t("other");
+
+document.getElementById("saveBtn").textContent=
+editId ? t("update") : t("save");
+
+document.getElementById("cancelBtn").textContent=t("cancel");
+
+document.getElementById("statsTitle").textContent=t("stats");
+document.getElementById("statCountLabel").textContent=t("count");
+document.getElementById("statTotalLabel").textContent=t("total");
+document.getElementById("statPlacesLabel").textContent=t("places");
+
+document.getElementById("filtersTitle").textContent=t("filters");
+document.getElementById("filterMonthLabel").textContent=t("month");
+document.getElementById("filterPlaceLabel").textContent=t("searchPlace");
+document.getElementById("filterSupplierLabel").textContent=t("searchSupplier");
+document.getElementById("filterBtn").textContent=t("search");
+document.getElementById("clearBtn").textContent=t("clear");
+document.getElementById("listTitle").textContent=t("list");
+
+const currentPlace=getSelectedPlace();
+renderPlaceOptions(currentPlace);
+renderInvoices();
+}
+
+function toggleLanguage(){
+lang=lang==="ar" ? "de" : "ar";
+localStorage.setItem("appLanguage",lang);
+applyLanguage();
+}
+
+function goBack(){
+window.location.href="index.html";
+}
+
+function previewFile(){
+const input=document.getElementById("invoiceFile");
+const preview=document.getElementById("filePreview");
+
+preview.innerHTML="";
+
+const file=input.files[0];
+if(!file)return;
+
+currentFileName=file.name;
+
+const reader=new FileReader();
+
+reader.onload=function(e){
+currentFileData=e.target.result;
+
+if(file.type.startsWith("image/")){
+const img=document.createElement("img");
+img.src=currentFileData;
+preview.appendChild(img);
+}else{
+const text=document.createElement("div");
+text.textContent=file.name;
+preview.appendChild(text);
+}
+};
+
+reader.readAsDataURL(file);
+}
+
+function readFile(file){
+return new Promise((resolve,reject)=>{
+const reader=new FileReader();
+reader.onload=e=>resolve(e.target.result);
+reader.onerror=reject;
+reader.readAsDataURL(file);
+});
+}
+
+async function saveInvoice(){
+const invoiceNumber=document.getElementById("invoiceNumber").value.trim();
+const date=document.getElementById("invoiceDate").value;
+const supplier=document.getElementById("supplier").value.trim();
+const amount=Number(document.getElementById("amount").value || 0);
+const currency=document.getElementById("currency").value;
+const type=document.getElementById("invoiceType").value;
+const places=getSelectedPlace();
+const notes=document.getElementById("notes").value.trim();
+
+if(!invoiceNumber && !supplier && !amount){
+alert(t("required"));
+return;
+}
+
+const fileInput=document.getElementById("invoiceFile");
+const file=fileInput.files[0];
+
+let fileData=currentFileData;
+let fileName=currentFileName;
+
+if(file){
+try{
+fileData=await readFile(file);
+fileName=file.name;
+}catch(e){
+console.error(e);
+}
+}
+
+if(editId){
+const old=invoices.find(item=>String(item.id)===String(editId));
+if(!old)return;
+
+const updated={
+...old,
+invoiceNumber,
+date,
+supplier,
+amount,
+currency,
+type,
+places,
+notes,
+fileData:fileData || old.fileData || "",
+fileName:fileName || old.fileName || ""
+};
+
+const {error}=await db
+.from("invoices")
+.update(invoiceToDatabase(updated))
+.eq("id",String(editId));
+
+if(error){
+console.error(error);
+alert(t("saveError"));
+return;
+}
+
+const index=invoices.findIndex(
+item=>String(item.id)===String(editId)
+);
+
+if(index!==-1){
+invoices[index]=updated;
+}
+
+mirrorInvoicesLocally();
+alert(t("updated"));
+
+}else{
+
+const invoice={
+id:newId(),
+invoiceNumber,
+date,
+supplier,
+amount,
+currency,
+type,
+places,
+notes,
+fileData:fileData || "",
+fileName:fileName || ""
+};
+
+const {error}=await db
+.from("invoices")
+.insert(invoiceToDatabase(invoice));
+
+if(error){
+console.error(error);
+alert(t("saveError"));
+return;
+}
+
+invoices.push(invoice);
+mirrorInvoicesLocally();
+alert(t("saved"));
+}
+
+clearForm();
+renderInvoices();
+}
+
+function editInvoice(id){
+const invoice=invoices.find(
+item=>String(item.id)===String(id)
+);
+
+if(!invoice)return;
+
+editId=String(invoice.id);
+
+document.getElementById("invoiceNumber").value=
+invoice.invoiceNumber || "";
+
+document.getElementById("invoiceDate").value=
+invoice.date || "";
+
+document.getElementById("supplier").value=
+invoice.supplier || "";
+
+document.getElementById("amount").value=
+invoice.amount || "";
+
+document.getElementById("currency").value=
+invoice.currency || "EUR";
+
+document.getElementById("invoiceType").value=
+invoice.type || "other";
+
+renderPlaceOptions(invoice.places || "");
+
+document.getElementById("notes").value=
+invoice.notes || "";
+
+currentFileData=invoice.fileData || "";
+currentFileName=invoice.fileName || "";
+
+document.getElementById("invoiceFile").value="";
+document.getElementById("filePreview").innerHTML="";
+
+if(invoice.fileData){
+
+if(invoice.fileData.startsWith("data:image/")){
+const img=document.createElement("img");
+img.src=invoice.fileData;
+
+document.getElementById("filePreview")
+.appendChild(img);
+
+}else{
+const div=document.createElement("div");
+
+div.textContent=
+invoice.fileName || t("file");
+
+document.getElementById("filePreview")
+.appendChild(div);
+}
+}
+
+document.getElementById("formTitle").textContent=
+t("formEdit");
+
+document.getElementById("saveBtn").textContent=
+t("update");
+
+document.getElementById("cancelBtn")
+.classList.remove("hidden");
+
+window.scrollTo({
+top:0,
+behavior:"smooth"
+});
+}
+
+function cancelEdit(){
+clearForm();
+}
+
+function clearForm(){
+editId=null;
+currentFileData="";
+currentFileName="";
+
+document.getElementById("invoiceNumber").value="";
+document.getElementById("invoiceDate").value="";
+document.getElementById("supplier").value="";
+document.getElementById("amount").value="";
+document.getElementById("currency").value="EUR";
+document.getElementById("invoiceType").value="hotel";
+
+renderPlaceOptions("");
+
+document.getElementById("customPlace").value="";
+document.getElementById("notes").value="";
+document.getElementById("invoiceFile").value="";
+document.getElementById("filePreview").innerHTML="";
+
+document.getElementById("formTitle").textContent=
+t("formAdd");
+
+document.getElementById("saveBtn").textContent=
+t("save");
+
+document.getElementById("cancelBtn")
+.classList.add("hidden");
+}
+
+async function deleteInvoice(id){
+if(!confirm(t("confirmDelete")))return;
+
+const {error}=await db
+.from("invoices")
+.delete()
+.eq("id",String(id));
+
+if(error){
+console.error(error);
+alert(t("deleteError"));
+return;
+}
+
+invoices=invoices.filter(
+item=>String(item.id)!==String(id)
+);
+
+mirrorInvoicesLocally();
+renderInvoices();
+}
+
+function clearFilters(){
+document.getElementById("filterMonth").value="";
+document.getElementById("filterPlace").value="";
+document.getElementById("filterSupplier").value="";
+renderInvoices();
+}
+
+function getFilteredInvoices(){
+const month=document.getElementById("filterMonth").value;
+
+const place=document.getElementById("filterPlace")
+.value.trim().toLowerCase();
+
+const supplier=document.getElementById("filterSupplier")
+.value.trim().toLowerCase();
+
+return invoices.filter(invoice=>{
+
+if(month && !(invoice.date || "").startsWith(month)){
+return false;
+}
+
+if(place){
+const p=String(invoice.places || "").toLowerCase();
+if(!p.includes(place))return false;
+}
+
+if(supplier){
+const s=String(invoice.supplier || "").toLowerCase();
+if(!s.includes(supplier))return false;
+}
+
+return true;
+});
+}
+
+function typeName(type){
+if(type==="hotel")return t("hotel");
+if(type==="materials")return t("materials");
+if(type==="repair")return t("repair");
+return t("other");
+}
+
+function renderStats(list){
+let totalEUR=0;
+const places=new Set();
+
+list.forEach(invoice=>{
+
+if(invoice.currency==="EUR"){
+totalEUR+=Number(invoice.amount || 0);
+}
+
+if(invoice.places){
+places.add(invoice.places);
+}
+
+});
+
+document.getElementById("statCount").textContent=
+list.length;
+
+document.getElementById("statTotal").textContent=
+totalEUR.toFixed(2);
+
+document.getElementById("statPlaces").textContent=
+places.size;
+}
+
+function renderInvoices(){
+const container=document.getElementById("invoiceList");
+container.innerHTML="";
+
+const list=getFilteredInvoices();
+
+renderStats(list);
+
+if(list.length===0){
+container.innerHTML=
+`<div class="empty">${escapeHtml(t("noInvoices"))}</div>`;
+return;
+}
+
+list
+.slice()
+.sort((a,b)=>
+String(b.date || "").localeCompare(
+String(a.date || "")
+)
+)
+.forEach(invoice=>{
+
+const box=document.createElement("div");
+box.className="invoice";
+
+const title=document.createElement("div");
+title.className="invoice-title";
+title.textContent=
+invoice.invoiceNumber || t("pageTitle");
+
+const info=document.createElement("div");
+info.className="info";
+
+let html="";
+
+if(invoice.date){
+html+=
+`<span class="badge">${escapeHtml(t("dateText"))}: ${escapeHtml(invoice.date)}</span>`;
+}
+
+if(invoice.supplier){
+html+=
+`<span class="badge">${escapeHtml(t("supplierText"))}: ${escapeHtml(invoice.supplier)}</span>`;
+}
+
+if(invoice.places){
+html+=
+`<span class="badge">${escapeHtml(t("placeText"))}: ${escapeHtml(invoice.places)}</span>`;
+}
+
+html+=
+`<span class="badge">${escapeHtml(t("typeText"))}: ${escapeHtml(typeName(invoice.type))}</span>`;
+
+info.innerHTML=html;
+
+const amount=document.createElement("div");
+amount.className="amount";
+
+amount.textContent=
+Number(invoice.amount || 0).toFixed(2)
++" "
++(invoice.currency || "EUR");
+
+box.appendChild(title);
+box.appendChild(info);
+box.appendChild(amount);
+
+if(invoice.notes){
+const notes=document.createElement("div");
+notes.style.marginTop="8px";
+notes.textContent=invoice.notes;
+box.appendChild(notes);
+}
+
+if(invoice.fileData){
+
+if(invoice.fileData.startsWith("data:image/")){
+const img=document.createElement("img");
+img.className="invoice-photo";
+img.src=invoice.fileData;
+box.appendChild(img);
+
+}else{
+const link=document.createElement("a");
+link.href=invoice.fileData;
+link.target="_blank";
+link.rel="noopener noreferrer";
+link.className="file-link";
+
+link.textContent=
+t("openFile")
++" - "
++(invoice.fileName || "");
+
+box.appendChild(link);
+}
+}
+
+const actions=document.createElement("div");
+actions.className="actions";
+
+const edit=document.createElement("button");
+edit.className="edit-btn";
+edit.textContent=t("edit");
+edit.onclick=()=>editInvoice(invoice.id);
+
+const del=document.createElement("button");
+del.className="delete-btn";
+del.textContent=t("delete");
+del.onclick=()=>deleteInvoice(invoice.id);
+
+actions.appendChild(edit);
+actions.appendChild(del);
+
+box.appendChild(actions);
+container.appendChild(box);
+});
+}
+
+function escapeHtml(value){
+return String(value ?? "")
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;")
+.replace(/"/g,"&quot;")
+.replace(/'/g,"&#039;");
+}
+
+async function startPage(){
+const {data:{session}}=await db.auth.getSession();
+
+if(!session){
+window.location.href="login.html";
+return;
+}
+
+applyLanguage();
+await loadHotels();
+await loadInvoices();
+}
+
+startPage();
+
+</script>
+</body>
+</html>

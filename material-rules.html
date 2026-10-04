@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clean & Care - قواعد المواد</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:Arial,Tahoma,sans-serif;
+  background:#f4f7fb;
+  color:#1f2937;
+}
+
+header{
+  background:#123c69;
+  color:white;
+  padding:18px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+header h1{
+  margin:0;
+  font-size:24px;
+}
+
+button{
+  border:0;
+  border-radius:8px;
+  padding:10px 15px;
+  cursor:pointer;
+  font-size:15px;
+  background:#123c69;
+  color:white;
+}
+
+button:hover{
+  opacity:.9;
+}
+
+.lang-btn{
+  background:#f59e0b;
+}
+
+.back-btn{
+  background:#64748b;
+}
+
+.container{
+  max-width:1200px;
+  margin:20px auto;
+  padding:0 15px;
+}
+
+.card{
+  background:white;
+  border-radius:12px;
+  padding:20px;
+  margin-bottom:20px;
+  box-shadow:0 2px 10px rgba(0,0,0,.08);
+}
+
+.card h2{
+  margin-top:0;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:15px;
+}
+
+.field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+label{
+  font-weight:bold;
+}
+
+input,
+select{
+  width:100%;
+  padding:11px;
+  border:1px solid #cbd5e1;
+  border-radius:8px;
+  font-size:15px;
+  background:white;
+}
+
+.material-row{
+  display:grid;
+  grid-template-columns:1fr 150px 80px;
+  gap:10px;
+  align-items:end;
+  margin-bottom:10px;
+}
+
+.remove-btn{
+  background:#dc2626;
+  padding:10px;
+}
+
+.add-row-btn{
+  background:#16a34a;
+  margin-top:5px;
+}
+
+.save-btn{
+  background:#123c69;
+  margin-top:15px;
+}
+
+.cancel-btn{
+  background:#64748b;
+  margin-top:15px;
+  margin-right:5px;
+}
+
+.rule{
+  border:1px solid #dbe3ec;
+  border-radius:10px;
+  padding:15px;
+  margin-bottom:12px;
+  background:#fafcff;
+}
+
+.rule-title{
+  font-size:18px;
+  font-weight:bold;
+  margin-bottom:8px;
+}
+
+.rule-info{
+  color:#475569;
+  margin-bottom:10px;
+}
+
+.rule-materials{
+  background:#f1f5f9;
+  border-radius:8px;
+  padding:10px;
+  margin-top:8px;
+}
+
+.rule-material-item{
+  padding:4px 0;
+}
+
+.rule-actions{
+  margin-top:12px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.edit-btn{
+  background:#2563eb;
+}
+
+.delete-btn{
+  background:#dc2626;
+}
+
+.warning{
+  background:#fff7ed;
+  border:1px solid #fdba74;
+  color:#9a3412;
+  padding:12px;
+  border-radius:8px;
+  margin-bottom:15px;
+}
+
+.empty{
+  text-align:center;
+  padding:30px;
+  color:#64748b;
+}
+
+.hidden{
+  display:none !important;
+}
+
+.badge{
+  display:inline-block;
+  padding:4px 8px;
+  border-radius:20px;
+  background:#e0f2fe;
+  color:#0369a1;
+  margin-right:5px;
+}
+
+@media(max-width:650px){
+  .material-row{
+    grid-template-columns:1fr;
+  }
+
+  header{
+    align-items:stretch;
+  }
+
+  header button{
+    width:100%;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1 id="pageTitle">قواعد المواد</h1>
+
+  <div>
+    <button class="lang-btn" onclick="toggleLanguage()" id="langBtn">
+      Deutsch
+    </button>
+
+    <button class="back-btn" onclick="goBack()" id="backBtn">
+      رجوع
+    </button>
+  </div>
+</header>
+
+<div class="container">
+
+  <div id="noMaterialsWarning" class="warning hidden">
+    <span id="warningText">
+      لا توجد مواد في المخزون. أضف المواد أولاً من صفحة المخزون.
+    </span>
+    <br><br>
+
+    <button onclick="openInventory()" id="inventoryBtn">
+      فتح المخزون
+    </button>
+  </div>
+
+  <div class="card">
+
+    <h2 id="formTitle">إضافة قاعدة مواد</h2>
+
+    <div class="grid">
+
+      <div class="field">
+        <label id="nameArLabel">اسم القاعدة بالعربي</label>
+        <input id="nameAr" type="text"
+               placeholder="مثال: تنظيف غرفة شخصين">
+      </div>
+
+      <div class="field">
+        <label id="nameDeLabel">اسم القاعدة بالألماني</label>
+        <input id="nameDe" type="text"
+               placeholder="Beispiel: Reinigung Doppelzimmer">
+      </div>
+
+      <div class="field">
+        <label id="workTypeLabel">نوع العمل</label>
+
+        <select id="workType" onchange="changeWorkType()">
+          <option value="room">غرفة</option>
+          <option value="train">قطار</option>
+          <option value="custom">عمل آخر</option>
+        </select>
+      </div>
+
+      <div class="field" id="roomTypeField">
+        <label id="roomTypeLabel">نوع الغرفة</label>
+
+        <select id="roomType">
+          <option value="1">غرفة شخص واحد</option>
+          <option value="2">غرفة شخصين</option>
+          <option value="3">غرفة ثلاثة أشخاص</option>
+          <option value="4">غرفة أربعة أشخاص</option>
+        </select>
+      </div>
+
+    </div>
+
+    <br>
+
+    <h3 id="materialsTitle">المواد المستخدمة</h3>
+
+    <div id="materialRows"></div>
+
+    <button class="add-row-btn"
+            onclick="addMaterialRow()"
+            id="addMaterialBtn">
+      + إضافة مادة
+    </button>
+
+    <br>
+
+    <button class="save-btn"
+            onclick="saveRule()"
+            id="saveBtn">
+      حفظ القاعدة
+    </button>
+
+    <button class="cancel-btn hidden"
+            onclick="cancelEdit()"
+            id="cancelBtn">
+      إلغاء
+    </button>
+
+  </div>
+
+  <div class="card">
+
+    <h2 id="rulesTitle">قواعد المواد الموجودة</h2>
+
+    <div id="rulesList"></div>
+
+  </div>
+
+</div>
+
+<script>
+
+/* =========================
+   Supabase
+========================= */
+
+const SUPABASE_URL =
+"https://vjllurkvzvumsfjxuxuz.supabase.co";
+
+const SUPABASE_PUBLISHABLE_KEY =
+"sb_publishable_4TiwsqWNph3wQzdoASlasg_gh4x1Atz";
+
+const supabaseClient =
+window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
+
+
+/* =========================
+   البيانات
+========================= */
+
+let lang =
+localStorage.getItem("appLanguage") || "ar";
+
+let materials=[];
+let rules=[];
+
+let editId=null;
+
+
+function newId(){
+  return Date.now().toString()+
+    Math.random().toString(16).slice(2);
+}
+
+
+/* =========================
+   الترجمة
+========================= */
+
+const translations={
+
+ar:{
+  pageTitle:"قواعد المواد",
+  langBtn:"Deutsch",
+  back:"رجوع",
+
+  formAdd:"إضافة قاعدة مواد",
+  formEdit:"تعديل قاعدة مواد",
+
+  nameAr:"اسم القاعدة بالعربي",
+  nameDe:"اسم القاعدة بالألماني",
+
+  workType:"نوع العمل",
+  room:"غرفة",
+  train:"قطار",
+  custom:"عمل آخر",
+
+  roomType:"نوع الغرفة",
+  room1:"غرفة شخص واحد",
+  room2:"غرفة شخصين",
+  room3:"غرفة ثلاثة أشخاص",
+  room4:"غرفة أربعة أشخاص",
+
+  materials:"المواد المستخدمة",
+
+  addMaterial:"+ إضافة مادة",
+  save:"حفظ القاعدة",
+  update:"تحديث القاعدة",
+  cancel:"إلغاء",
+
+  rules:"قواعد المواد الموجودة",
+
+  warning:"لا توجد مواد في المخزون. أضف المواد أولاً من صفحة المخزون.",
+  inventory:"فتح المخزون",
+
+  noRules:"لا توجد قواعد مواد حتى الآن.",
+
+  selectMaterial:"اختر المادة",
+  quantity:"الكمية",
+
+  edit:"تعديل",
+  delete:"حذف",
+
+  typeRoom:"غرفة",
+  typeTrain:"قطار",
+  typeCustom:"عمل آخر",
+
+  confirmDelete:"هل تريد حذف هذه القاعدة؟",
+
+  fillName:"اكتب اسم القاعدة بالعربي أو بالألماني.",
+  addOneMaterial:"أضف مادة واحدة على الأقل.",
+  invalidQuantity:"يجب أن تكون كمية المادة أكبر من صفر.",
+
+  saved:"تم حفظ القاعدة بنجاح.",
+  updated:"تم تحديث القاعدة بنجاح.",
+
+  duplicateMaterial:"لا يمكن إضافة نفس المادة مرتين في نفس القاعدة.",
+  noMaterialSelected:"اختر مادة أولاً.",
+
+  loadError:"تعذر تحميل قواعد المواد.",
+  materialsLoadError:"تعذر تحميل المواد من المخزون.",
+  saveError:"تعذر حفظ قاعدة المواد.",
+  deleteError:"تعذر حذف قاعدة المواد."
+},
+
+de:{
+  pageTitle:"Materialregeln",
+  langBtn:"العربية",
+  back:"Zurück",
+
+  formAdd:"Materialregel hinzufügen",
+  formEdit:"Materialregel bearbeiten",
+
+  nameAr:"Regelname auf Arabisch",
+  nameDe:"Regelname auf Deutsch",
+
+  workType:"Arbeitsart",
+  room:"Zimmer",
+  train:"Zug",
+  custom:"Andere Arbeit",
+
+  roomType:"Zimmertyp",
+  room1:"Einzelzimmer",
+  room2:"Doppelzimmer",
+  room3:"Dreibettzimmer",
+  room4:"Vierbettzimmer",
+
+  materials:"Verwendete Materialien",
+
+  addMaterial:"+ Material hinzufügen",
+  save:"Regel speichern",
+  update:"Regel aktualisieren",
+  cancel:"Abbrechen",
+
+  rules:"Vorhandene Materialregeln",
+
+  warning:"Keine Materialien im Lager. Bitte zuerst Materialien im Lager hinzufügen.",
+  inventory:"Lager öffnen",
+
+  noRules:"Noch keine Materialregeln vorhanden.",
+
+  selectMaterial:"Material auswählen",
+  quantity:"Menge",
+
+  edit:"Bearbeiten",
+  delete:"Löschen",
+
+  typeRoom:"Zimmer",
+  typeTrain:"Zug",
+  typeCustom:"Andere Arbeit",
+
+  confirmDelete:"Möchten Sie diese Regel wirklich löschen?",
+
+  fillName:"Bitte geben Sie den Regelnamen auf Arabisch oder Deutsch ein.",
+  addOneMaterial:"Bitte mindestens ein Material hinzufügen.",
+  invalidQuantity:"Die Materialmenge muss größer als null sein.",
+
+  saved:"Die Regel wurde erfolgreich gespeichert.",
+  updated:"Die Regel wurde erfolgreich aktualisiert.",
+
+  duplicateMaterial:"Dasselbe Material kann nicht zweimal in derselben Regel verwendet werden.",
+  noMaterialSelected:"Bitte zuerst ein Material auswählen.",
+
+  loadError:"Materialregeln konnten nicht geladen werden.",
+  materialsLoadError:"Materialien konnten nicht geladen werden.",
+  saveError:"Materialregel konnte nicht gespeichert werden.",
+  deleteError:"Materialregel konnte nicht gelöscht werden."
+}
+
+};
+
+
+function t(key){
+  return translations[lang][key] || key;
+}
+
+
+/* =========================
+   نسخة محلية للتوافق
+========================= */
+
+function mirrorMaterialsLocally(){
+
+  localStorage.setItem(
+    "materials",
+    JSON.stringify(materials)
+  );
+}
+
+
+function mirrorRulesLocally(){
+
+  localStorage.setItem(
+    "materialRules",
+    JSON.stringify(rules)
+  );
+}
+
+
+/* =========================
+   تحميل المواد من Supabase
+========================= */
+
+async function loadMaterials(){
+
+  const {data,error}=
+    await supabaseClient
+    .from("materials")
+    .select("*")
+    .order("created_at",{ascending:true});
+
+
+  if(error){
+
+    console.error("Materials:",error);
+
+    alert(t("materialsLoadError"));
+
+    materials=[];
+
+    return;
+  }
+
+
+  materials=
+    (data || []).map(row=>({
+
+      id:String(row.id),
+
+      name:row.name || "",
+
+      quantity:Number(row.quantity) || 0,
+
+      unit:row.unit || "piece",
+
+      minimum:Number(row.minimum) || 0,
+
+      notes:row.notes || "",
+
+      history:Array.isArray(row.history)
+        ? row.history
+        : []
+
+    }));
+
+
+  mirrorMaterialsLocally();
+}
+
+
+/* =========================
+   تحميل القواعد من Supabase
+========================= */
+
+async function loadRules(){
+
+  let oldRules=[];
+
+  try{
+
+    oldRules=
+      JSON.parse(
+        localStorage.getItem("materialRules") || "[]"
+      );
+
+  }catch(e){
+
+    oldRules=[];
+  }
+
+
+  if(!Array.isArray(oldRules)){
+    oldRules=[];
+  }
+
+
+  const {data,error}=
+    await supabaseClient
+    .from("material_rules")
+    .select("*")
+    .order("created_at",{ascending:true});
+
+
+  if(error){
+
+    console.error("Material rules:",error);
+
+    alert(t("loadError"));
+
+    return;
+  }
+
+
+  /*
+    إذا جدول Supabase فاضي
+    وفي قواعد قديمة محلية،
+    ننقلها مرة واحدة
+  */
+
+  if((data || []).length===0 && oldRules.length>0){
+
+    const rows=
+      oldRules.map(rule=>({
+
+        id:String(rule.id),
+
+        name_ar:rule.nameAr || "",
+
+        name_de:rule.nameDe || "",
+
+        work_type:rule.workType || "room",
+
+        room_type:
+          rule.workType==="room"
+          ? String(rule.roomType || "1")
+          : "",
+
+        items:
+          Array.isArray(rule.items)
+          ? rule.items.map(item=>({
+
+              materialId:String(item.materialId),
+
+              quantity:Number(item.quantity) || 0
+
+            }))
+          : []
+
+      }));
+
+
+    const {error:migrationError}=
+      await supabaseClient
+      .from("material_rules")
+      .upsert(rows,{onConflict:"id"});
+
+
+    if(migrationError){
+
+      console.error(
+        "Rules migration:",
+        migrationError
+      );
+
+      alert(t("saveError"));
+
+      return;
+    }
+
+
+    const reload=
+      await supabaseClient
+      .from("material_rules")
+      .select("*")
+      .order("created_at",{ascending:true});
+
+
+    if(reload.error){
+
+      console.error(reload.error);
+
+      alert(t("loadError"));
+
+      return;
+    }
+
+
+    rules=
+      convertRulesFromDatabase(reload.data || []);
+
+  }else{
+
+    rules=
+      convertRulesFromDatabase(data || []);
+  }
+
+
+  mirrorRulesLocally();
+}
+
+
+function convertRulesFromDatabase(rows){
+
+  return rows.map(row=>({
+
+    id:String(row.id),
+
+    nameAr:row.name_ar || "",
+
+    nameDe:row.name_de || "",
+
+    workType:row.work_type || "room",
+
+    roomType:
+      row.room_type !== null &&
+      row.room_type !== undefined
+      ? String(row.room_type)
+      : "",
+
+    items:
+      Array.isArray(row.items)
+      ? row.items.map(item=>({
+
+          materialId:String(item.materialId),
+
+          quantity:Number(item.quantity) || 0
+
+        }))
+      : []
+
+  }));
+}
+
+
+/* =========================
+   اللغة
+========================= */
+
+function applyLanguage(){
+
+  document.documentElement.lang=lang;
+
+  document.documentElement.dir=
+    lang==="ar" ? "rtl":"ltr";
+
+
+  document.getElementById("pageTitle").textContent=
+    t("pageTitle");
+
+  document.getElementById("langBtn").textContent=
+    t("langBtn");
+
+  document.getElementById("backBtn").textContent=
+    t("back");
+
+
+  document.getElementById("formTitle").textContent=
+    editId ? t("formEdit") : t("formAdd");
+
+
+  document.getElementById("nameArLabel").textContent=
+    t("nameAr");
+
+  document.getElementById("nameDeLabel").textContent=
+    t("nameDe");
+
+
+  document.getElementById("workTypeLabel").textContent=
+    t("workType");
+
+  document.getElementById("roomTypeLabel").textContent=
+    t("roomType");
+
+
+  document.getElementById("materialsTitle").textContent=
+    t("materials");
+
+  document.getElementById("addMaterialBtn").textContent=
+    t("addMaterial");
+
+
+  document.getElementById("saveBtn").textContent=
+    editId ? t("update") : t("save");
+
+  document.getElementById("cancelBtn").textContent=
+    t("cancel");
+
+
+  document.getElementById("rulesTitle").textContent=
+    t("rules");
+
+
+  document.getElementById("warningText").textContent=
+    t("warning");
+
+  document.getElementById("inventoryBtn").textContent=
+    t("inventory");
+
+
+  const workType=
+    document.getElementById("workType");
+
+  workType.options[0].textContent=t("room");
+  workType.options[1].textContent=t("train");
+  workType.options[2].textContent=t("custom");
+
+
+  const roomType=
+    document.getElementById("roomType");
+
+  roomType.options[0].textContent=t("room1");
+  roomType.options[1].textContent=t("room2");
+  roomType.options[2].textContent=t("room3");
+  roomType.options[3].textContent=t("room4");
+
+
+  renderMaterialRows();
+
+  renderRules();
+
+  updateWarning();
+
+  changeWorkType();
+}
+
+
+function toggleLanguage(){
+
+  lang=
+    lang==="ar" ? "de":"ar";
+
+  localStorage.setItem(
+    "appLanguage",
+    lang
+  );
+
+  applyLanguage();
+}
+
+
+/* =========================
+   التنقل
+========================= */
+
+function goBack(){
+  window.location.href="index.html";
+}
+
+
+function openInventory(){
+  window.location.href="inventory.html";
+}
+
+
+/* =========================
+   نوع العمل
+========================= */
+
+function changeWorkType(){
+
+  const type=
+    document.getElementById("workType").value;
+
+  const roomField=
+    document.getElementById("roomTypeField");
+
+
+  if(type==="room"){
+
+    roomField.classList.remove("hidden");
+
+  }else{
+
+    roomField.classList.add("hidden");
+  }
+}
+
+
+/* =========================
+   المواد
+========================= */
+
+function materialName(material){
+
+  if(lang==="de"){
+
+    return material.nameDe ||
+           material.name ||
+           material.nameAr ||
+           "Material";
+  }
+
+
+  return material.nameAr ||
+         material.name ||
+         material.nameDe ||
+         "مادة";
+}
+
+
+function getMaterialById(id){
+
+  return materials.find(
+    material=>
+      String(material.id)===String(id)
+  );
+}
+
+
+function createMaterialSelect(selectedId){
+
+  const select=
+    document.createElement("select");
+
+  select.className="material-select";
+
+
+  const empty=
+    document.createElement("option");
+
+  empty.value="";
+
+  empty.textContent=
+    t("selectMaterial");
+
+  select.appendChild(empty);
+
+
+  materials.forEach(material=>{
+
+    const option=
+      document.createElement("option");
+
+    option.value=
+      String(material.id);
+
+    option.textContent=
+      materialName(material);
+
+
+    if(
+      String(material.id)===
+      String(selectedId || "")
+    ){
+
+      option.selected=true;
+    }
+
+
+    select.appendChild(option);
+  });
+
+
+  return select;
+}
+
+
+function addMaterialRow(data=null){
+
+  if(materials.length===0){
+
+    alert(t("warning"));
+
+    return;
+  }
+
+
+  const container=
+    document.getElementById("materialRows");
+
+
+  const row=
+    document.createElement("div");
+
+  row.className="material-row";
+
+
+  const select=
+    createMaterialSelect(
+      data ? data.materialId : ""
+    );
+
+
+  const quantity=
+    document.createElement("input");
+
+  quantity.type="number";
+  quantity.min="0.01";
+  quantity.step="0.01";
+  quantity.placeholder=t("quantity");
+
+  quantity.value=
+    data &&
+    data.quantity!==undefined
+    ? data.quantity
+    : "";
+
+  quantity.className=
+    "material-quantity";
+
+
+  const remove=
+    document.createElement("button");
+
+  remove.type="button";
+  remove.className="remove-btn";
+  remove.textContent="×";
+
+
+  remove.onclick=function(){
+    row.remove();
+  };
+
+
+  row.appendChild(select);
+  row.appendChild(quantity);
+  row.appendChild(remove);
+
+  container.appendChild(row);
+}
+
+
+function renderMaterialRows(){
+
+  const container=
+    document.getElementById("materialRows");
+
+
+  const rows=
+    Array.from(
+      container.querySelectorAll(".material-row")
+    );
+
+
+  rows.forEach(row=>{
+
+    const select=
+      row.querySelector(".material-select");
+
+    if(!select)return;
+
+
+    const selected=
+      select.value;
+
+
+    const quantity=
+      row.querySelector(".material-quantity");
+
+
+    const newSelect=
+      createMaterialSelect(selected);
+
+
+    row.replaceChild(
+      newSelect,
+      select
+    );
+
+
+    if(quantity){
+
+      quantity.placeholder=
+        t("quantity");
+    }
+  });
+}/* =========================
+   تنظيف النموذج
+========================= */
+
+function clearForm(){
+
+  document.getElementById("nameAr").value="";
+  document.getElementById("nameDe").value="";
+
+  document.getElementById("workType").value="room";
+  document.getElementById("roomType").value="1";
+
+  document.getElementById("materialRows").innerHTML="";
+
+  editId=null;
+
+  document
+    .getElementById("cancelBtn")
+    .classList.add("hidden");
+
+  changeWorkType();
+
+  applyLanguage();
+
+  if(materials.length>0){
+    addMaterialRow();
+  }
+}
+
+
+/* =========================
+   قراءة المواد من النموذج
+========================= */
+
+function getFormItems(){
+
+  const rows=
+    document.querySelectorAll(".material-row");
+
+  const items=[];
+
+  const used=new Set();
+
+
+  for(const row of rows){
+
+    const select=
+      row.querySelector(".material-select");
+
+    const quantity=
+      row.querySelector(".material-quantity");
+
+
+    const materialId=
+      select ? select.value : "";
+
+    const qty=
+      quantity
+      ? Number(quantity.value)
+      : 0;
+
+
+    if(!materialId){
+
+      alert(t("noMaterialSelected"));
+
+      return null;
+    }
+
+
+    if(used.has(String(materialId))){
+
+      alert(t("duplicateMaterial"));
+
+      return null;
+    }
+
+
+    if(
+      !Number.isFinite(qty) ||
+      qty<=0
+    ){
+
+      alert(t("invalidQuantity"));
+
+      return null;
+    }
+
+
+    used.add(String(materialId));
+
+
+    items.push({
+
+      materialId:String(materialId),
+
+      quantity:qty
+
+    });
+  }
+
+
+  if(items.length===0){
+
+    alert(t("addOneMaterial"));
+
+    return null;
+  }
+
+
+  return items;
+}
+
+
+/* =========================
+   حفظ / تعديل القاعدة
+========================= */
+
+async function saveRule(){
+
+  const nameAr=
+    document.getElementById("nameAr")
+    .value.trim();
+
+  const nameDe=
+    document.getElementById("nameDe")
+    .value.trim();
+
+  const workType=
+    document.getElementById("workType")
+    .value;
+
+  const roomType=
+    document.getElementById("roomType")
+    .value;
+
+
+  if(!nameAr && !nameDe){
+
+    alert(t("fillName"));
+
+    return;
+  }
+
+
+  const items=
+    getFormItems();
+
+
+  if(!items){
+    return;
+  }
+
+
+  const databaseRule={
+
+    name_ar:nameAr,
+
+    name_de:nameDe,
+
+    work_type:workType,
+
+    room_type:
+      workType==="room"
+      ? String(roomType)
+      : "",
+
+    items:items
+
+  };
+
+
+  if(editId){
+
+    const {error}=
+      await supabaseClient
+      .from("material_rules")
+      .update(databaseRule)
+      .eq("id",String(editId));
+
+
+    if(error){
+
+      console.error(error);
+
+      alert(t("saveError"));
+
+      return;
+    }
+
+
+    alert(t("updated"));
+
+  }else{
+
+    const id=newId();
+
+
+    const {error}=
+      await supabaseClient
+      .from("material_rules")
+      .insert({
+
+        id:id,
+
+        ...databaseRule
+
+      });
+
+
+    if(error){
+
+      console.error(error);
+
+      alert(t("saveError"));
+
+      return;
+    }
+
+
+    alert(t("saved"));
+  }
+
+
+  clearForm();
+
+  await loadRules();
+
+  applyLanguage();
+}
+
+
+/* =========================
+   تعديل قاعدة
+========================= */
+
+function editRule(id){
+
+  const rule=
+    rules.find(
+      rule=>
+        String(rule.id)===String(id)
+    );
+
+
+  if(!rule){
+    return;
+  }
+
+
+  editId=
+    String(rule.id);
+
+
+  document.getElementById("nameAr").value=
+    rule.nameAr || "";
+
+  document.getElementById("nameDe").value=
+    rule.nameDe || "";
+
+  document.getElementById("workType").value=
+    rule.workType || "room";
+
+  document.getElementById("roomType").value=
+    String(rule.roomType || "1");
+
+
+  document.getElementById("materialRows")
+    .innerHTML="";
+
+
+  const items=
+    Array.isArray(rule.items)
+    ? rule.items
+    : [];
+
+
+  items.forEach(item=>{
+
+    addMaterialRow(item);
+
+  });
+
+
+  document
+    .getElementById("cancelBtn")
+    .classList.remove("hidden");
+
+
+  changeWorkType();
+
+  applyLanguage();
+
+
+  window.scrollTo({
+    top:0,
+    behavior:"smooth"
+  });
+}
+
+
+/* =========================
+   إلغاء التعديل
+========================= */
+
+function cancelEdit(){
+
+  clearForm();
+}
+
+
+/* =========================
+   حذف قاعدة
+========================= */
+
+async function deleteRule(id){
+
+  if(!confirm(t("confirmDelete"))){
+    return;
+  }
+
+
+  const {error}=
+    await supabaseClient
+    .from("material_rules")
+    .delete()
+    .eq("id",String(id));
+
+
+  if(error){
+
+    console.error(error);
+
+    alert(t("deleteError"));
+
+    return;
+  }
+
+
+  await loadRules();
+
+  applyLanguage();
+}
+
+
+/* =========================
+   أسماء القواعد
+========================= */
+
+function getRuleName(rule){
+
+  if(lang==="de"){
+
+    return rule.nameDe ||
+           rule.nameAr ||
+           "Materialregel";
+  }
+
+
+  return rule.nameAr ||
+         rule.nameDe ||
+         "قاعدة مواد";
+}
+
+
+function getWorkTypeName(type){
+
+  if(type==="room"){
+    return t("typeRoom");
+  }
+
+  if(type==="train"){
+    return t("typeTrain");
+  }
+
+  return t("typeCustom");
+}
+
+
+function getRoomTypeName(type){
+
+  if(String(type)==="1"){
+    return t("room1");
+  }
+
+  if(String(type)==="2"){
+    return t("room2");
+  }
+
+  if(String(type)==="3"){
+    return t("room3");
+  }
+
+  if(String(type)==="4"){
+    return t("room4");
+  }
+
+  return "";
+}
+
+
+/* =========================
+   اسم وحدة المادة
+========================= */
+
+function getUnitName(unit){
+
+  const units={
+
+    ar:{
+      piece:"قطعة",
+      liter:"لتر",
+      kg:"كيلوغرام",
+      box:"علبة",
+      carton:"كرتون",
+      roll:"رول",
+      bag:"كيس"
+    },
+
+    de:{
+      piece:"Stück",
+      liter:"Liter",
+      kg:"Kilogramm",
+      box:"Box",
+      carton:"Karton",
+      roll:"Rolle",
+      bag:"Sack"
+    }
+
+  };
+
+
+  return units[lang][unit] || unit || "";
+}
+
+
+/* =========================
+   عرض القواعد
+========================= */
+
+function renderRules(){
+
+  const container=
+    document.getElementById("rulesList");
+
+  container.innerHTML="";
+
+
+  if(rules.length===0){
+
+    container.innerHTML=
+      `<div class="empty">${t("noRules")}</div>`;
+
+    return;
+  }
+
+
+  rules.forEach(rule=>{
+
+    const box=
+      document.createElement("div");
+
+    box.className="rule";
+
+
+    const title=
+      document.createElement("div");
+
+    title.className="rule-title";
+
+    title.textContent=
+      getRuleName(rule);
+
+
+    const info=
+      document.createElement("div");
+
+    info.className="rule-info";
+
+
+    const badgeType=
+      document.createElement("span");
+
+    badgeType.className="badge";
+
+    badgeType.textContent=
+      getWorkTypeName(rule.workType);
+
+    info.appendChild(badgeType);
+
+
+    if(rule.workType==="room"){
+
+      const badgeRoom=
+        document.createElement("span");
+
+      badgeRoom.className="badge";
+
+      badgeRoom.textContent=
+        getRoomTypeName(
+          rule.roomType || "1"
+        );
+
+      info.appendChild(badgeRoom);
+    }
+
+
+    const materialsBox=
+      document.createElement("div");
+
+    materialsBox.className=
+      "rule-materials";
+
+
+    const items=
+      Array.isArray(rule.items)
+      ? rule.items
+      : [];
+
+
+    items.forEach(item=>{
+
+      const material=
+        getMaterialById(item.materialId);
+
+
+      const itemDiv=
+        document.createElement("div");
+
+      itemDiv.className=
+        "rule-material-item";
+
+
+      const materialText=
+        material
+        ? materialName(material)
+        : (
+            lang==="de"
+            ? "Material nicht gefunden"
+            : "المادة غير موجودة"
+          );
+
+
+      itemDiv.textContent=
+        "• "+
+        materialText+
+        " — "+
+        item.quantity;
+
+
+      if(material && material.unit){
+
+        itemDiv.textContent+=
+          " "+
+          getUnitName(material.unit);
+      }
+
+
+      materialsBox.appendChild(itemDiv);
+    });
+
+
+    const actions=
+      document.createElement("div");
+
+    actions.className=
+      "rule-actions";
+
+
+    const edit=
+      document.createElement("button");
+
+    edit.className="edit-btn";
+
+    edit.textContent=t("edit");
+
+    edit.onclick=function(){
+      editRule(rule.id);
+    };
+
+
+    const del=
+      document.createElement("button");
+
+    del.className="delete-btn";
+
+    del.textContent=t("delete");
+
+    del.onclick=function(){
+      deleteRule(rule.id);
+    };
+
+
+    actions.appendChild(edit);
+    actions.appendChild(del);
+
+
+    box.appendChild(title);
+    box.appendChild(info);
+    box.appendChild(materialsBox);
+    box.appendChild(actions);
+
+
+    container.appendChild(box);
+  });
+}
+
+
+/* =========================
+   تحذير عدم وجود مواد
+========================= */
+
+function updateWarning(){
+
+  const warning=
+    document.getElementById("noMaterialsWarning");
+
+
+  if(materials.length===0){
+
+    warning.classList.remove("hidden");
+
+  }else{
+
+    warning.classList.add("hidden");
+  }
+}
+
+
+/* =========================
+   تشغيل الصفحة
+========================= */
+
+async function startPage(){
+
+  const {
+    data:{session},
+    error
+  }=
+  await supabaseClient.auth.getSession();
+
+
+  if(error || !session){
+
+    window.location.href="login.html";
+
+    return;
+  }
+
+
+  await loadMaterials();
+
+  await loadRules();
+
+  applyLanguage();
+
+
+  if(
+    materials.length>0 &&
+    document.querySelectorAll(".material-row").length===0
+  ){
+
+    addMaterialRow();
+  }
+}
+
+
+startPage();
+
+</script>
+
+</body>
+</html>

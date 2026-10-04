@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clean & Care - القطارات</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{font-family:Arial,sans-serif;background:#f4f6f8;margin:0;padding:20px;color:#222}
+.container{max-width:1100px;margin:auto}
+.header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+h1,h2{margin:0 0 15px}
+.card{background:white;padding:20px;border-radius:14px;margin-bottom:20px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+input,select,textarea,button{width:100%;box-sizing:border-box;padding:11px;margin:5px 0;border:1px solid #ccc;border-radius:8px;font-size:15px}
+textarea{min-height:90px;resize:vertical}
+button{background:#222;color:white;border:none;cursor:pointer}
+button:hover{opacity:.9}
+.btn-small{width:auto;padding:8px 12px;margin:2px}
+.btn-edit{background:#1976d2}
+.btn-delete{background:#d32f2f}
+.btn-back{background:#555}
+.btn-language{background:#00897b}
+.trip{border:1px solid #ddd;padding:15px;border-radius:10px;margin-top:12px}
+.trip-title{font-size:18px;font-weight:bold;margin-bottom:8px}
+.info{margin:5px 0}
+.badge{display:inline-block;padding:5px 9px;border-radius:20px;background:#eee;margin:3px}
+.badge-green{background:#d7f5dc}
+.badge-orange{background:#ffe0b2}
+.badge-red{background:#ffcdd2}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat{background:#f1f3f5;padding:15px;border-radius:10px;text-align:center}
+.stat strong{display:block;font-size:24px;margin-bottom:5px}
+.empty{color:#777;padding:10px}
+.photo-preview{max-width:180px;max-height:140px;border-radius:8px;margin-top:8px;display:block}
+.hidden{display:none}
+.worker-box{border:1px solid #ddd;padding:10px;border-radius:10px}
+.worker-box label{display:block;font-weight:bold;margin-bottom:5px}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="header">
+<h1 id="pageTitle">القطارات</h1>
+
+<div>
+<button class="btn-small btn-back" onclick="goHome()" id="backBtn">العودة للرئيسية</button>
+<button class="btn-small btn-language" onclick="toggleLanguage()" id="languageBtn">Deutsch</button>
+</div>
+</div>
+
+<div class="card">
+
+<h2 id="formTitle">إضافة رحلة قطار</h2>
+
+<div class="grid">
+
+<div>
+<label id="tripNumberLabel">رقم الرحلة / القطار</label>
+<input id="tripNumber" type="text" placeholder="رقم الرحلة أو القطار">
+</div>
+
+<div>
+<label id="dateLabel">التاريخ</label>
+<input id="tripDate" type="date">
+</div>
+
+<div>
+<label id="timeLabel">وقت الرحلة</label>
+<input id="tripTime" type="time">
+</div>
+
+<div class="worker-box">
+<label id="worker1Label">العامل الأول</label>
+<select id="worker1Select">
+<option value="">اختر العامل الأول</option>
+</select>
+</div>
+
+<div class="worker-box">
+<label id="worker2Label">العامل الثاني</label>
+<select id="worker2Select">
+<option value="">اختر العامل الثاني</option>
+</select>
+</div>
+
+<div>
+<label id="durationLabel">مدة العمل بالدقائق</label>
+<input id="duration" type="number" min="0" placeholder="مثلاً 60">
+</div>
+
+<div>
+<label id="delayLabel">التأخير بالدقائق</label>
+<input id="delay" type="number" min="0" value="0" placeholder="0">
+</div>
+
+<div>
+<label id="statusLabel">الحالة</label>
+<select id="status">
+<option value="planned" id="statusPlanned">مخطط</option>
+<option value="working" id="statusWorking">قيد العمل</option>
+<option value="completed" id="statusCompleted">مكتمل</option>
+<option value="cancelled" id="statusCancelled">ملغى</option>
+</select>
+</div>
+
+</div>
+
+<div>
+<label id="notesLabel">ملاحظات</label>
+<textarea id="notes" placeholder="ملاحظات الرحلة"></textarea>
+</div>
+
+<div>
+<label id="delayPhotoLabel">صورة إثبات التأخير</label>
+<input id="delayPhoto" type="file" accept="image/*">
+<img id="photoPreview" class="photo-preview hidden">
+</div>
+
+<button onclick="saveTrip()" id="saveBtn">إضافة الرحلة</button>
+<button onclick="cancelEdit()" class="btn-back hidden" id="cancelBtn">إلغاء التعديل</button>
+
+</div>
+
+<div class="card">
+
+<h2 id="statsTitle">الإحصائيات</h2>
+
+<div class="stats">
+
+<div class="stat">
+<strong id="totalTrips">0</strong>
+<span id="totalTripsText">إجمالي الرحلات</span>
+</div>
+
+<div class="stat">
+<strong id="completedTrips">0</strong>
+<span id="completedTripsText">الرحلات المكتملة</span>
+</div>
+
+<div class="stat">
+<strong id="delayedTrips">0</strong>
+<span id="delayedTripsText">الرحلات المتأخرة</span>
+</div>
+
+<div class="stat">
+<strong id="totalMinutes">0</strong>
+<span id="totalMinutesText">إجمالي الدقائق</span>
+</div>
+
+</div>
+</div>
+
+<div class="card">
+<h2 id="listTitle">قائمة الرحلات</h2>
+<div id="tripsList"></div>
+</div>
+
+</div>
+
+<script>
+
+/* =========================
+   Supabase
+========================= */
+
+const SUPABASE_URL =
+"https://vjllurkvzvumsfjxuxuz.supabase.co";
+
+const SUPABASE_PUBLISHABLE_KEY =
+"sb_publishable_4TiwsqWNph3wQzdoASlasg_gh4x1Atz";
+
+const supabaseClient =
+window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
+
+
+/* =========================
+   البيانات
+========================= */
+
+let language =
+localStorage.getItem("appLanguage") || "ar";
+
+let trips=[];
+let workers=[];
+
+let editingTripId=null;
+let currentPhoto="";
+
+
+/* =========================
+   الترجمة
+========================= */
+
+const translations={
+
+ar:{
+title:"القطارات",
+back:"العودة للرئيسية",
+language:"Deutsch",
+formTitle:"إضافة رحلة قطار",
+tripNumber:"رقم الرحلة / القطار",
+date:"التاريخ",
+time:"وقت الرحلة",
+worker1:"العامل الأول",
+worker2:"العامل الثاني",
+duration:"مدة العمل بالدقائق",
+delay:"التأخير بالدقائق",
+status:"الحالة",
+notes:"ملاحظات",
+delayPhoto:"صورة إثبات التأخير",
+tripNumberPlaceholder:"رقم الرحلة أو القطار",
+durationPlaceholder:"مثلاً 60",
+delayPlaceholder:"0",
+notesPlaceholder:"ملاحظات الرحلة",
+chooseWorker1:"اختر العامل الأول",
+chooseWorker2:"اختر العامل الثاني",
+planned:"مخطط",
+working:"قيد العمل",
+completed:"مكتمل",
+cancelled:"ملغى",
+addTrip:"إضافة الرحلة",
+saveChanges:"حفظ التعديلات",
+cancel:"إلغاء التعديل",
+stats:"الإحصائيات",
+totalTrips:"إجمالي الرحلات",
+completedTrips:"الرحلات المكتملة",
+delayedTrips:"الرحلات المتأخرة",
+totalMinutes:"إجمالي الدقائق",
+list:"قائمة الرحلات",
+noTrips:"لا توجد رحلات حتى الآن.",
+edit:"تعديل",
+delete:"حذف",
+confirmDelete:"هل تريد حذف هذه الرحلة؟",
+tripAdded:"تمت إضافة الرحلة.",
+tripUpdated:"تم تعديل الرحلة.",
+tripDeleted:"تم حذف الرحلة.",
+enterTripNumber:"اكتب رقم الرحلة أو القطار.",
+enterDate:"اختر التاريخ.",
+enterTime:"اختر وقت الرحلة.",
+chooseBothWorkers:"يجب اختيار عاملين للرحلة.",
+sameWorker:"لا يمكن اختيار نفس العامل مرتين.",
+noWorker:"لم يتم اختيار عامل",
+minutes:"دقيقة",
+delayMinutes:"دقيقة تأخير",
+materialStatus:"المواد",
+materialDeducted:"تم خصم المواد",
+materialNotDeducted:"لم يتم خصم المواد",
+evidence:"صورة الإثبات",
+tripDate:"التاريخ",
+tripTime:"الوقت",
+workerName:"العمال",
+tripDuration:"المدة",
+tripDelay:"التأخير",
+tripStatus:"الحالة",
+tripNotes:"الملاحظات",
+loadError:"تعذر تحميل رحلات القطارات.",
+saveError:"تعذر حفظ الرحلة.",
+deleteError:"تعذر حذف الرحلة."
+},
+
+de:{
+title:"Züge",
+back:"Startseite",
+language:"العربية",
+formTitle:"Zugfahrt hinzufügen",
+tripNumber:"Fahrt-/Zugnummer",
+date:"Datum",
+time:"Uhrzeit",
+worker1:"Mitarbeiter 1",
+worker2:"Mitarbeiter 2",
+duration:"Arbeitsdauer in Minuten",
+delay:"Verspätung in Minuten",
+status:"Status",
+notes:"Notizen",
+delayPhoto:"Nachweisfoto der Verspätung",
+tripNumberPlaceholder:"Fahrt- oder Zugnummer",
+durationPlaceholder:"z.B. 60",
+delayPlaceholder:"0",
+notesPlaceholder:"Notizen zur Fahrt",
+chooseWorker1:"Mitarbeiter 1 auswählen",
+chooseWorker2:"Mitarbeiter 2 auswählen",
+planned:"Geplant",
+working:"In Arbeit",
+completed:"Abgeschlossen",
+cancelled:"Storniert",
+addTrip:"Fahrt hinzufügen",
+saveChanges:"Änderungen speichern",
+cancel:"Bearbeitung abbrechen",
+stats:"Statistik",
+totalTrips:"Fahrten gesamt",
+completedTrips:"Abgeschlossene Fahrten",
+delayedTrips:"Verspätete Fahrten",
+totalMinutes:"Minuten gesamt",
+list:"Fahrtenliste",
+noTrips:"Noch keine Fahrten vorhanden.",
+edit:"Bearbeiten",
+delete:"Löschen",
+confirmDelete:"Möchten Sie diese Fahrt löschen?",
+tripAdded:"Fahrt wurde hinzugefügt.",
+tripUpdated:"Fahrt wurde geändert.",
+tripDeleted:"Fahrt wurde gelöscht.",
+enterTripNumber:"Bitte Fahrt- oder Zugnummer eingeben.",
+enterDate:"Bitte Datum auswählen.",
+enterTime:"Bitte Uhrzeit auswählen.",
+chooseBothWorkers:"Bitte zwei Mitarbeiter auswählen.",
+sameWorker:"Der gleiche Mitarbeiter kann nicht zweimal ausgewählt werden.",
+noWorker:"Kein Mitarbeiter ausgewählt",
+minutes:"Minuten",
+delayMinutes:"Minuten Verspätung",
+materialStatus:"Material",
+materialDeducted:"Material wurde abgezogen",
+materialNotDeducted:"Material noch nicht abgezogen",
+evidence:"Nachweisfoto",
+tripDate:"Datum",
+tripTime:"Uhrzeit",
+workerName:"Mitarbeiter",
+tripDuration:"Dauer",
+tripDelay:"Verspätung",
+tripStatus:"Status",
+tripNotes:"Notizen",
+loadError:"Zugfahrten konnten nicht geladen werden.",
+saveError:"Fahrt konnte nicht gespeichert werden.",
+deleteError:"Fahrt konnte nicht gelöscht werden."
+}
+
+};
+
+function t(key){
+  return translations[language][key] || key;
+}
+
+function escapeHtml(value){
+  return String(value ?? "")
+  .replace(/&/g,"&amp;")
+  .replace(/</g,"&lt;")
+  .replace(/>/g,"&gt;")
+  .replace(/"/g,"&quot;")
+  .replace(/'/g,"&#039;");
+}
+
+function newId(){
+  return Date.now().toString()+
+  Math.random().toString(16).slice(2);
+}
+
+
+/* =========================
+   نسخة محلية مؤقتة
+========================= */
+
+function mirrorTripsLocally(){
+  localStorage.setItem(
+    "trips",
+    JSON.stringify(trips)
+  );
+}
+
+function mirrorWorkersLocally(){
+  localStorage.setItem(
+    "workers",
+    JSON.stringify(workers)
+  );
+}
+
+
+/* =========================
+   تحميل العمال من Supabase
+========================= */
+
+async function loadWorkers(){
+
+  const {data,error}=
+  await supabaseClient
+  .from("workers")
+  .select("id,name,phone,photo")
+  .order("created_at",{ascending:true});
+
+  if(error){
+    console.error("Workers:",error);
+    return false;
+  }
+
+  workers=data || [];
+  mirrorWorkersLocally();
+
+  return true;
+}
+
+
+/* =========================
+   تحميل ونقل الرحلات
+========================= */
+
+async function loadTrips(){
+
+  const oldTrips=
+  JSON.parse(localStorage.getItem("trips") || "[]");
+
+  const {data,error}=
+  await supabaseClient
+  .from("trips")
+  .select("*")
+  .order("created_at",{ascending:true});
+
+  if(error){
+    console.error("Trips:",error);
+    alert(t("loadError"));
+    return;
+  }
+
+  if((data || []).length===0 && oldTrips.length>0){
+
+    const rows=oldTrips.map(trip=>({
+
+      id:String(trip.id),
+
+      trip_number:
+        trip.tripNumber || "",
+
+      date:
+        trip.date || "",
+
+      time:
+        trip.time || "",
+
+      worker_id:
+        trip.workerId
+        ? String(trip.workerId)
+        : null,
+
+      worker1_id:
+        trip.worker1Id
+        ? String(trip.worker1Id)
+        : (
+          trip.workerId
+          ? String(trip.workerId)
+          : null
+        ),
+
+      worker2_id:
+        trip.worker2Id
+        ? String(trip.worker2Id)
+        : null,
+
+      worker_ids:
+        Array.isArray(trip.workerIds)
+        ? trip.workerIds.map(String)
+        : [],
+
+      duration:
+        Number(trip.duration) || 0,
+
+      delay:
+        Number(trip.delay) || 0,
+
+      status:
+        trip.status || "planned",
+
+      notes:
+        trip.notes || "",
+
+      delay_photo:
+        trip.photo || trip.delayPhoto || null
+
+    }));
+
+    const {error:migrationError}=
+    await supabaseClient
+    .from("trips")
+    .upsert(rows,{onConflict:"id"});
+
+    if(migrationError){
+      console.error("Trip migration:",migrationError);
+      alert(t("saveError"));
+      return;
+    }
+
+    const reload=
+    await supabaseClient
+    .from("trips")
+    .select("*")
+    .order("created_at",{ascending:true});
+
+    if(reload.error){
+      console.error(reload.error);
+      alert(t("loadError"));
+      return;
+    }
+
+    convertTripsFromDatabase(reload.data || []);
+
+  }else{
+
+    convertTripsFromDatabase(data || []);
+  }
+
+  mirrorTripsLocally();
+  updateLanguage();
+}
+
+
+/* =========================
+   تحويل بيانات Supabase
+========================= */
+
+function convertTripsFromDatabase(rows){
+
+  trips=rows.map(row=>{
+
+    const worker1=
+      workers.find(
+        w=>String(w.id)===String(row.worker1_id || row.worker_id)
+      );
+
+    const worker2=
+      workers.find(
+        w=>String(w.id)===String(row.worker2_id)
+      );
+
+    const ids=
+      Array.isArray(row.worker_ids)
+      ? row.worker_ids.map(String)
+      : [];
+
+    const worker1Id=
+      row.worker1_id ||
+      row.worker_id ||
+      ids[0] ||
+      "";
+
+    const worker2Id=
+      row.worker2_id ||
+      ids[1] ||
+      "";
+
+    return{
+
+      id:String(row.id),
+
+      tripNumber:row.trip_number || "",
+
+      date:row.date || "",
+
+      time:row.time || "",
+
+      workerId:String(worker1Id || ""),
+
+      workerName:
+        worker1 ? worker1.name : "",
+
+      worker1Id:String(worker1Id || ""),
+
+      worker1Name:
+        worker1 ? worker1.name : "",
+
+      worker2Id:String(worker2Id || ""),
+
+      worker2Name:
+        worker2 ? worker2.name : "",
+
+      workerIds:[
+        String(worker1Id || ""),
+        String(worker2Id || "")
+      ].filter(Boolean),
+
+      workerNames:[
+        worker1 ? worker1.name : "",
+        worker2 ? worker2.name : ""
+      ].filter(Boolean),
+
+      duration:Number(row.duration) || 0,
+
+      delay:Number(row.delay) || 0,
+
+      status:row.status || "planned",
+
+      notes:row.notes || "",
+
+      photo:row.delay_photo || "",
+
+      completed:
+        row.status==="completed",
+
+      materialDeducted:false
+    };
+  });
+}
+
+
+/* =========================
+   اللغة
+========================= */
+
+function updateLanguage(){
+
+  document.documentElement.lang=language;
+  document.documentElement.dir=
+    language==="ar" ? "rtl":"ltr";
+
+  document.getElementById("pageTitle").textContent=t("title");
+  document.getElementById("backBtn").textContent=t("back");
+  document.getElementById("languageBtn").textContent=t("language");
+
+  document.getElementById("formTitle").textContent=
+    editingTripId ? t("saveChanges") : t("formTitle");
+
+  document.getElementById("tripNumberLabel").textContent=t("tripNumber");
+  document.getElementById("dateLabel").textContent=t("date");
+  document.getElementById("timeLabel").textContent=t("time");
+  document.getElementById("worker1Label").textContent=t("worker1");
+  document.getElementById("worker2Label").textContent=t("worker2");
+  document.getElementById("durationLabel").textContent=t("duration");
+  document.getElementById("delayLabel").textContent=t("delay");
+  document.getElementById("statusLabel").textContent=t("status");
+  document.getElementById("notesLabel").textContent=t("notes");
+  document.getElementById("delayPhotoLabel").textContent=t("delayPhoto");
+
+  document.getElementById("tripNumber").placeholder=t("tripNumberPlaceholder");
+  document.getElementById("duration").placeholder=t("durationPlaceholder");
+  document.getElementById("delay").placeholder=t("delayPlaceholder");
+  document.getElementById("notes").placeholder=t("notesPlaceholder");
+
+  document.getElementById("statsTitle").textContent=t("stats");
+  document.getElementById("totalTripsText").textContent=t("totalTrips");
+  document.getElementById("completedTripsText").textContent=t("completedTrips");
+  document.getElementById("delayedTripsText").textContent=t("delayedTrips");
+  document.getElementById("totalMinutesText").textContent=t("totalMinutes");
+  document.getElementById("listTitle").textContent=t("list");
+
+  document.getElementById("saveBtn").textContent=
+    editingTripId ? t("saveChanges") : t("addTrip");
+
+  document.getElementById("cancelBtn").textContent=t("cancel");
+
+  document.getElementById("statusPlanned").textContent=t("planned");
+  document.getElementById("statusWorking").textContent=t("working");
+  document.getElementById("statusCompleted").textContent=t("completed");
+  document.getElementById("statusCancelled").textContent=t("cancelled");
+
+  fillWorkerSelects();
+  renderTrips();
+}
+
+function toggleLanguage(){
+
+  language=
+    language==="ar" ? "de":"ar";
+
+  localStorage.setItem(
+    "appLanguage",
+    language
+  );
+
+  updateLanguage();
+}
+
+
+/* =========================
+   تعبئة العاملين
+========================= */
+
+function fillWorkerSelects(){
+
+  const select1=
+    document.getElementById("worker1Select");
+
+  const select2=
+    document.getElementById("worker2Select");
+
+  const current1=select1.value;
+  const current2=select2.value;
+
+  select1.innerHTML=
+    `<option value="">${t("chooseWorker1")}</option>`;
+
+  select2.innerHTML=
+    `<option value="">${t("chooseWorker2")}</option>`;
+
+  workers.forEach(worker=>{
+
+    const option1=document.createElement("option");
+    option1.value=String(worker.id);
+    option1.textContent=worker.name || "";
+    select1.appendChild(option1);
+
+    const option2=document.createElement("option");
+    option2.value=String(worker.id);
+    option2.textContent=worker.name || "";
+    select2.appendChild(option2);
+  });
+
+  if(current1)select1.value=String(current1);
+  if(current2)select2.value=String(current2);
+}
+
+
+/* =========================
+   صورة التأخير
+========================= */
+
+document.getElementById("delayPhoto")
+.addEventListener("change",function(){
+
+  const file=this.files[0];
+
+  if(!file)return;
+
+  const reader=new FileReader();
+
+  reader.onload=function(e){
+
+    currentPhoto=e.target.result;
+
+    const preview=
+      document.getElementById("photoPreview");
+
+    preview.src=currentPhoto;
+    preview.classList.remove("hidden");
+  };
+
+  reader.readAsDataURL(file);
+});/* =========================
+   حفظ الرحلة
+========================= */
+
+async function saveTrip(){
+
+  const tripNumber=
+    document.getElementById("tripNumber").value.trim();
+
+  const date=
+    document.getElementById("tripDate").value;
+
+  const time=
+    document.getElementById("tripTime").value;
+
+  const worker1Id=
+    document.getElementById("worker1Select").value;
+
+  const worker2Id=
+    document.getElementById("worker2Select").value;
+
+  const duration=
+    Number(document.getElementById("duration").value || 0);
+
+  const delay=
+    Number(document.getElementById("delay").value || 0);
+
+  const status=
+    document.getElementById("status").value;
+
+  const notes=
+    document.getElementById("notes").value.trim();
+
+
+  if(!tripNumber){
+    alert(t("enterTripNumber"));
+    return;
+  }
+
+  if(!date){
+    alert(t("enterDate"));
+    return;
+  }
+
+  if(!time){
+    alert(t("enterTime"));
+    return;
+  }
+
+  if(!worker1Id || !worker2Id){
+    alert(t("chooseBothWorkers"));
+    return;
+  }
+
+  if(String(worker1Id)===String(worker2Id)){
+    alert(t("sameWorker"));
+    return;
+  }
+
+
+  if(editingTripId){
+
+    const {error}=
+      await supabaseClient
+      .from("trips")
+      .update({
+
+        trip_number:tripNumber,
+        date:date,
+        time:time,
+
+        worker_id:String(worker1Id),
+        worker1_id:String(worker1Id),
+        worker2_id:String(worker2Id),
+
+        worker_ids:[
+          String(worker1Id),
+          String(worker2Id)
+        ],
+
+        duration:duration,
+        delay:delay,
+        status:status,
+        notes:notes,
+        delay_photo:currentPhoto || null
+
+      })
+      .eq("id",String(editingTripId));
+
+
+    if(error){
+      console.error(error);
+      alert(t("saveError"));
+      return;
+    }
+
+    alert(t("tripUpdated"));
+
+  }else{
+
+    const tripId=newId();
+
+    const {error}=
+      await supabaseClient
+      .from("trips")
+      .insert({
+
+        id:tripId,
+
+        trip_number:tripNumber,
+
+        date:date,
+
+        time:time,
+
+        worker_id:String(worker1Id),
+
+        worker1_id:String(worker1Id),
+
+        worker2_id:String(worker2Id),
+
+        worker_ids:[
+          String(worker1Id),
+          String(worker2Id)
+        ],
+
+        duration:duration,
+
+        delay:delay,
+
+        status:status,
+
+        notes:notes,
+
+        delay_photo:currentPhoto || null
+
+      });
+
+
+    if(error){
+      console.error(error);
+      alert(t("saveError"));
+      return;
+    }
+
+    alert(t("tripAdded"));
+  }
+
+
+  resetForm();
+
+  await loadTrips();
+}
+
+
+/* =========================
+   تعديل الرحلة
+========================= */
+
+function editTrip(id){
+
+  const trip=
+    trips.find(
+      x=>String(x.id)===String(id)
+    );
+
+  if(!trip)return;
+
+  editingTripId=String(id);
+
+  document.getElementById("tripNumber").value=
+    trip.tripNumber || "";
+
+  document.getElementById("tripDate").value=
+    trip.date || "";
+
+  document.getElementById("tripTime").value=
+    trip.time || "";
+
+
+  let worker1Id=
+    trip.worker1Id ||
+    trip.workerId ||
+    "";
+
+  let worker2Id=
+    trip.worker2Id || "";
+
+
+  if(Array.isArray(trip.workerIds)){
+
+    worker1Id=
+      trip.workerIds[0] ||
+      worker1Id;
+
+    worker2Id=
+      trip.workerIds[1] ||
+      worker2Id;
+  }
+
+
+  document.getElementById("worker1Select").value=
+    String(worker1Id);
+
+  document.getElementById("worker2Select").value=
+    String(worker2Id);
+
+  document.getElementById("duration").value=
+    trip.duration || 0;
+
+  document.getElementById("delay").value=
+    trip.delay || 0;
+
+  document.getElementById("status").value=
+    trip.status || "planned";
+
+  document.getElementById("notes").value=
+    trip.notes || "";
+
+  currentPhoto=
+    trip.photo || "";
+
+  const preview=
+    document.getElementById("photoPreview");
+
+  if(currentPhoto){
+
+    preview.src=currentPhoto;
+
+    preview.classList.remove("hidden");
+
+  }else{
+
+    preview.src="";
+
+    preview.classList.add("hidden");
+  }
+
+  document.getElementById("cancelBtn")
+    .classList.remove("hidden");
+
+  updateLanguage();
+
+  window.scrollTo({
+    top:0,
+    behavior:"smooth"
+  });
+}
+
+
+/* =========================
+   حذف الرحلة
+========================= */
+
+async function deleteTrip(id){
+
+  if(!confirm(t("confirmDelete")))return;
+
+  const {error}=
+    await supabaseClient
+    .from("trips")
+    .delete()
+    .eq("id",String(id));
+
+  if(error){
+
+    console.error(error);
+
+    alert(t("deleteError"));
+
+    return;
+  }
+
+  alert(t("tripDeleted"));
+
+  await loadTrips();
+}
+
+
+/* =========================
+   إلغاء التعديل
+========================= */
+
+function cancelEdit(){
+  resetForm();
+}
+
+
+/* =========================
+   إعادة النموذج
+========================= */
+
+function resetForm(){
+
+  editingTripId=null;
+  currentPhoto="";
+
+  document.getElementById("tripNumber").value="";
+  document.getElementById("tripDate").value="";
+  document.getElementById("tripTime").value="";
+
+  document.getElementById("worker1Select").value="";
+  document.getElementById("worker2Select").value="";
+
+  document.getElementById("duration").value="";
+  document.getElementById("delay").value="0";
+
+  document.getElementById("status").value="planned";
+
+  document.getElementById("notes").value="";
+
+  document.getElementById("delayPhoto").value="";
+
+  document.getElementById("photoPreview").src="";
+
+  document.getElementById("photoPreview")
+    .classList.add("hidden");
+
+  document.getElementById("cancelBtn")
+    .classList.add("hidden");
+
+  updateLanguage();
+}
+
+
+/* =========================
+   شكل الحالة
+========================= */
+
+function getStatusClass(status){
+
+  if(status==="completed"){
+    return "badge badge-green";
+  }
+
+  if(status==="working"){
+    return "badge badge-orange";
+  }
+
+  if(status==="cancelled"){
+    return "badge badge-red";
+  }
+
+  return "badge";
+}
+
+
+/* =========================
+   أسماء العاملين
+========================= */
+
+function getTripWorkerNames(trip){
+
+  const names=[];
+
+  const ids=
+    Array.isArray(trip.workerIds)
+    ? trip.workerIds
+    : [
+        trip.worker1Id || trip.workerId,
+        trip.worker2Id
+      ];
+
+
+  ids.forEach(workerId=>{
+
+    if(!workerId)return;
+
+    const worker=
+      workers.find(
+        w=>String(w.id)===String(workerId)
+      );
+
+    if(worker && worker.name){
+      names.push(worker.name);
+    }
+  });
+
+
+  if(names.length){
+    return [...new Set(names)];
+  }
+
+
+  if(trip.worker1Name || trip.worker2Name){
+
+    return [
+      trip.worker1Name || "",
+      trip.worker2Name || ""
+    ].filter(Boolean);
+  }
+
+
+  if(trip.workerName){
+    return [trip.workerName];
+  }
+
+
+  return [];
+}
+
+
+/* =========================
+   عرض الرحلات
+========================= */
+
+function renderTrips(){
+
+  const list=
+    document.getElementById("tripsList");
+
+
+  if(!trips.length){
+
+    list.innerHTML=
+      `<div class="empty">${t("noTrips")}</div>`;
+
+  }else{
+
+    const sortedTrips=
+      [...trips].sort((a,b)=>{
+
+        const aa=
+          String(a.date || "")+
+          " "+
+          String(a.time || "");
+
+        const bb=
+          String(b.date || "")+
+          " "+
+          String(b.time || "");
+
+        return bb.localeCompare(aa);
+      });
+
+
+    list.innerHTML=
+      sortedTrips.map(trip=>{
+
+        const statusText=
+          translations[language][trip.status] ||
+          trip.status ||
+          "";
+
+        const workerNames=
+          getTripWorkerNames(trip);
+
+        const workersText=
+          workerNames.length
+          ? workerNames
+              .map(name=>escapeHtml(name))
+              .join(" + ")
+          : t("noWorker");
+
+        const tripId=
+          JSON.stringify(String(trip.id));
+
+        return `
+
+        <div class="trip">
+
+          <div class="trip-title">
+            ${escapeHtml(trip.tripNumber)}
+          </div>
+
+
+          <div class="info">
+
+            <strong>
+              ${t("tripDate")}:
+            </strong>
+
+            ${escapeHtml(trip.date)}
+
+          </div>
+
+
+          <div class="info">
+
+            <strong>
+              ${t("tripTime")}:
+            </strong>
+
+            ${escapeHtml(trip.time)}
+
+          </div>
+
+
+          <div class="info">
+
+            <strong>
+              ${t("workerName")}:
+            </strong>
+
+            ${workersText}
+
+          </div>
+
+
+          <div class="info">
+
+            <strong>
+              ${t("tripDuration")}:
+            </strong>
+
+            ${Number(trip.duration || 0)}
+            ${t("minutes")}
+
+          </div>
+
+
+          <div class="info">
+
+            <strong>
+              ${t("tripDelay")}:
+            </strong>
+
+            <span class="${
+              Number(trip.delay || 0)>0
+              ? "badge badge-red"
+              : "badge badge-green"
+            }">
+
+              ${
+                Number(trip.delay || 0)>0
+                ? Number(trip.delay || 0)+
+                  " "+
+                  t("delayMinutes")
+                : "0"
+              }
+
+            </span>
+
+          </div>
+
+
+          <div class="info">
+
+            <strong>
+              ${t("tripStatus")}:
+            </strong>
+
+            <span class="${getStatusClass(trip.status)}">
+
+              ${escapeHtml(statusText)}
+
+            </span>
+
+          </div>
+
+
+          <div class="info">
+
+            <strong>
+              ${t("materialStatus")}:
+            </strong>
+
+            <span class="${
+              trip.materialDeducted
+              ? "badge badge-green"
+              : "badge badge-orange"
+            }">
+
+              ${
+                trip.materialDeducted
+                ? t("materialDeducted")
+                : t("materialNotDeducted")
+              }
+
+            </span>
+
+          </div>
+
+
+          ${
+            trip.notes
+            ?
+            `
+            <div class="info">
+
+              <strong>
+                ${t("tripNotes")}:
+              </strong>
+
+              ${escapeHtml(trip.notes)}
+
+            </div>
+            `
+            :""
+          }
+
+
+          ${
+            trip.photo
+            ?
+            `
+            <div class="info">
+
+              <strong>
+                ${t("evidence")}:
+              </strong>
+
+              <img
+                src="${trip.photo}"
+                class="photo-preview">
+
+            </div>
+            `
+            :""
+          }
+
+
+          <div>
+
+            <button
+              class="btn-small btn-edit"
+              onclick='editTrip(${tripId})'>
+
+              ${t("edit")}
+
+            </button>
+
+
+            <button
+              class="btn-small btn-delete"
+              onclick='deleteTrip(${tripId})'>
+
+              ${t("delete")}
+
+            </button>
+
+          </div>
+
+        </div>
+
+        `;
+
+      }).join("");
+  }
+
+
+  document.getElementById("totalTrips").textContent=
+    trips.length;
+
+
+  document.getElementById("completedTrips").textContent=
+    trips.filter(
+      x=>x.status==="completed"
+    ).length;
+
+
+  document.getElementById("delayedTrips").textContent=
+    trips.filter(
+      x=>Number(x.delay || 0)>0
+    ).length;
+
+
+  document.getElementById("totalMinutes").textContent=
+    trips.reduce(
+      (sum,x)=>
+        sum+Number(x.duration || 0),
+      0
+    );
+}
+
+
+/* =========================
+   الرئيسية
+========================= */
+
+function goHome(){
+  window.location.href="index.html";
+}
+
+
+/* =========================
+   تشغيل الصفحة
+========================= */
+
+async function startPage(){
+
+  const {
+    data:{session},
+    error
+  }=
+  await supabaseClient.auth.getSession();
+
+
+  if(error || !session){
+
+    window.location.href="login.html";
+
+    return;
+  }
+
+
+  await loadWorkers();
+
+  await loadTrips();
+}
+
+
+startPage();
+
+</script>
+
+</body>
+</html>

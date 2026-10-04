@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clean & Care - الصيانة</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Tahoma,sans-serif;background:#f4f7fb;color:#1f2937}
+header{background:#123c69;color:white;padding:18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+header h1{margin:0;font-size:24px}
+button{border:0;border-radius:8px;padding:10px 15px;cursor:pointer;font-size:15px;color:white}
+button:hover{opacity:.9}
+.lang-btn{background:#f59e0b}
+.back-btn{background:#64748b}
+.save-btn{background:#123c69}
+.edit-btn{background:#2563eb}
+.delete-btn{background:#dc2626}
+.filter-btn{background:#16a34a}
+.clear-btn{background:#64748b}
+.container{max-width:1250px;margin:20px auto;padding:0 15px}
+.card{background:white;border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.card h2{margin-top:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px}
+.field{display:flex;flex-direction:column;gap:6px}
+label{font-weight:bold}
+input,select,textarea{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px;font-size:15px;background:white}
+textarea{min-height:90px;resize:vertical}
+.photo-box{border:2px dashed #cbd5e1;border-radius:10px;padding:15px;background:#f8fafc}
+.preview{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.preview img{width:120px;height:90px;object-fit:cover;border-radius:8px;border:1px solid #cbd5e1}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+.stat{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:15px;text-align:center}
+.stat strong{display:block;font-size:25px;margin-top:5px}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end}
+.repair{border:1px solid #dbe3ec;border-radius:10px;padding:15px;margin-bottom:12px;background:#fafcff}
+.repair-title{font-size:19px;font-weight:bold;margin-bottom:8px}
+.repair-info{color:#475569;line-height:1.8}
+.badge{display:inline-block;padding:4px 9px;border-radius:20px;background:#e0f2fe;color:#0369a1;margin:3px}
+.photos{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.photos img{width:150px;height:110px;object-fit:cover;border-radius:8px;border:1px solid #cbd5e1}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.empty{text-align:center;padding:30px;color:#64748b}
+.hidden{display:none!important}
+@media(max-width:650px){header button{width:100%}}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1 id="pageTitle">الصيانة</h1>
+<div>
+<button class="lang-btn" onclick="toggleLanguage()" id="langBtn">Deutsch</button>
+<button class="back-btn" onclick="goBack()" id="backBtn">رجوع</button>
+</div>
+</header>
+
+<div class="container">
+
+<div class="card">
+<h2 id="formTitle">إضافة بلاغ صيانة</h2>
+
+<div class="grid">
+
+<div class="field">
+<label id="ticketLabel">رقم التذكرة</label>
+<input id="ticket" type="text">
+</div>
+
+<div class="field">
+<label id="dateLabel">التاريخ</label>
+<input id="date" type="date">
+</div>
+
+<div class="field">
+<label id="placeLabel">الفندق / المكان</label>
+<select id="place" onchange="changePlace()">
+<option value="">اختر الفندق / المكان</option>
+</select>
+</div>
+
+<div class="field hidden" id="customPlaceBox">
+<label id="customPlaceLabel">اسم المكان الآخر</label>
+<input id="customPlace" type="text">
+</div>
+
+<div class="field">
+<label id="workerLabel">العامل</label>
+<input id="worker" type="text">
+</div>
+
+<div class="field">
+<label id="hoursLabel">عدد الساعات</label>
+<input id="hours" type="number" min="0" step="0.5">
+</div>
+
+<div class="field">
+<label id="invoiceLabel">مرجع الفاتورة</label>
+<input id="invoiceRef" type="text">
+</div>
+
+</div>
+
+<br>
+
+<div class="field">
+<label id="issueLabel">وصف المشكلة</label>
+<textarea id="issue"></textarea>
+</div>
+
+<br>
+
+<div class="field">
+<label id="notesLabel">ملاحظات</label>
+<textarea id="notes"></textarea>
+</div>
+
+<br>
+
+<div class="grid">
+
+<div class="photo-box">
+<label id="beforeLabel">صور قبل الإصلاح</label><br><br>
+<input id="beforePhotos" type="file" accept="image/*" multiple onchange="previewPhotos('beforePhotos','beforePreview')">
+<div id="beforePreview" class="preview"></div>
+</div>
+
+<div class="photo-box">
+<label id="afterLabel">صور بعد الإصلاح</label><br><br>
+<input id="afterPhotos" type="file" accept="image/*" multiple onchange="previewPhotos('afterPhotos','afterPreview')">
+<div id="afterPreview" class="preview"></div>
+</div>
+
+</div>
+
+<br>
+
+<button class="save-btn" onclick="saveRepair()" id="saveBtn">حفظ بلاغ الصيانة</button>
+<button class="back-btn hidden" onclick="cancelEdit()" id="cancelBtn">إلغاء</button>
+
+</div>
+
+<div class="card">
+<h2 id="statsTitle">الإحصائيات</h2>
+
+<div class="stats">
+<div class="stat">
+<span id="statRepairsLabel">عدد البلاغات</span>
+<strong id="statRepairs">0</strong>
+</div>
+
+<div class="stat">
+<span id="statHoursLabel">مجموع الساعات</span>
+<strong id="statHours">0</strong>
+</div>
+
+<div class="stat">
+<span id="statTicketsLabel">التذاكر</span>
+<strong id="statTickets">0</strong>
+</div>
+</div>
+</div>
+
+<div class="card">
+<h2 id="filtersTitle">البحث والتصفية</h2>
+
+<div class="filters">
+
+<div class="field">
+<label id="filterMonthLabel">الشهر</label>
+<input id="filterMonth" type="month">
+</div>
+
+<div class="field">
+<label id="filterPlaceLabel">الفندق / المكان</label>
+<input id="filterPlace" type="text">
+</div>
+
+<button class="filter-btn" onclick="renderRepairs()" id="filterBtn">بحث</button>
+<button class="clear-btn" onclick="clearFilters()" id="clearBtn">مسح</button>
+
+</div>
+</div>
+
+<div class="card">
+<h2 id="listTitle">بلاغات الصيانة</h2>
+<div id="repairsList"></div>
+</div>
+
+</div>
+
+<script>
+
+const SUPABASE_URL="https://vjllurkvzvumsfjxuxuz.supabase.co";
+const SUPABASE_KEY="sb_publishable_4TiwsqWNph3wQzdoASlasg_gh4x1Atz";
+const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+let lang=localStorage.getItem("appLanguage") || "ar";
+let repairs=[];
+let hotels=[];
+let editId=null;
+
+const translations={
+ar:{
+pageTitle:"الصيانة",langBtn:"Deutsch",back:"رجوع",
+formAdd:"إضافة بلاغ صيانة",formEdit:"تعديل بلاغ صيانة",
+ticket:"رقم التذكرة",date:"التاريخ",place:"الفندق / المكان",
+choosePlace:"اختر الفندق / المكان",otherPlace:"مكان آخر",
+customPlace:"اسم المكان الآخر",
+worker:"العامل",hours:"عدد الساعات",invoice:"مرجع الفاتورة",
+issue:"وصف المشكلة",notes:"ملاحظات",
+before:"صور قبل الإصلاح",after:"صور بعد الإصلاح",
+save:"حفظ بلاغ الصيانة",update:"تحديث بلاغ الصيانة",cancel:"إلغاء",
+stats:"الإحصائيات",repairs:"عدد البلاغات",totalHours:"مجموع الساعات",tickets:"التذاكر",
+filters:"البحث والتصفية",month:"الشهر",searchPlace:"الفندق / المكان",
+search:"بحث",clear:"مسح",list:"بلاغات الصيانة",
+noRepairs:"لا توجد بلاغات صيانة.",
+edit:"تعديل",delete:"حذف",
+confirmDelete:"هل تريد حذف بلاغ الصيانة؟",
+saved:"تم حفظ بلاغ الصيانة بنجاح.",
+updated:"تم تحديث بلاغ الصيانة بنجاح.",
+fillRequired:"يرجى إدخال رقم التذكرة أو وصف المشكلة.",
+saveError:"حدث خطأ أثناء الحفظ.",
+deleteError:"حدث خطأ أثناء الحذف.",
+loadError:"تعذر تحميل بلاغات الصيانة.",
+hoursText:"ساعة",invoiceText:"الفاتورة",ticketText:"التذكرة",
+workerText:"العامل",beforeText:"قبل الإصلاح",afterText:"بعد الإصلاح"
+},
+de:{
+pageTitle:"Reparaturen",langBtn:"العربية",back:"Zurück",
+formAdd:"Reparaturmeldung hinzufügen",formEdit:"Reparaturmeldung bearbeiten",
+ticket:"Ticketnummer",date:"Datum",place:"Hotel / Ort",
+choosePlace:"Hotel / Ort auswählen",otherPlace:"Anderer Ort",
+customPlace:"Name des anderen Ortes",
+worker:"Mitarbeiter",hours:"Stunden",invoice:"Rechnungsreferenz",
+issue:"Problembeschreibung",notes:"Notizen",
+before:"Fotos vor der Reparatur",after:"Fotos nach der Reparatur",
+save:"Reparatur speichern",update:"Reparatur aktualisieren",cancel:"Abbrechen",
+stats:"Statistik",repairs:"Anzahl Meldungen",totalHours:"Gesamtstunden",tickets:"Tickets",
+filters:"Suche und Filter",month:"Monat",searchPlace:"Hotel / Ort",
+search:"Suchen",clear:"Löschen",list:"Reparaturmeldungen",
+noRepairs:"Keine Reparaturmeldungen vorhanden.",
+edit:"Bearbeiten",delete:"Löschen",
+confirmDelete:"Möchten Sie diese Reparaturmeldung löschen?",
+saved:"Die Reparaturmeldung wurde erfolgreich gespeichert.",
+updated:"Die Reparaturmeldung wurde erfolgreich aktualisiert.",
+fillRequired:"Bitte Ticketnummer oder Problembeschreibung eingeben.",
+saveError:"Fehler beim Speichern.",
+deleteError:"Fehler beim Löschen.",
+loadError:"Reparaturmeldungen konnten nicht geladen werden.",
+hoursText:"Stunden",invoiceText:"Rechnung",ticketText:"Ticket",
+workerText:"Mitarbeiter",beforeText:"Vor der Reparatur",afterText:"Nach der Reparatur"
+}
+};
+
+function t(key){
+return translations[lang][key] || key;
+}
+
+function newId(){
+return Date.now().toString()+Math.random().toString(16).slice(2);
+}
+
+async function loadHotels(){
+const {data,error}=await db
+.from("hotels")
+.select("id,name,city")
+.order("name",{ascending:true});
+
+if(error){
+console.error(error);
+hotels=[];
+}else{
+hotels=data || [];
+}
+
+renderPlaceOptions();
+}
+
+function renderPlaceOptions(selectedValue=""){
+const select=document.getElementById("place");
+if(!select)return;
+
+select.innerHTML="";
+
+const first=document.createElement("option");
+first.value="";
+first.textContent=t("choosePlace");
+select.appendChild(first);
+
+hotels.forEach(hotel=>{
+const option=document.createElement("option");
+option.value=hotel.name || "";
+option.textContent=hotel.city
+? `${hotel.name} - ${hotel.city}`
+: hotel.name;
+select.appendChild(option);
+});
+
+const other=document.createElement("option");
+other.value="__OTHER__";
+other.textContent=t("otherPlace");
+select.appendChild(other);
+
+if(selectedValue){
+const exists=hotels.some(h=>String(h.name)===String(selectedValue));
+
+if(exists){
+select.value=selectedValue;
+document.getElementById("customPlaceBox").classList.add("hidden");
+}else{
+select.value="__OTHER__";
+document.getElementById("customPlace").value=selectedValue;
+document.getElementById("customPlaceBox").classList.remove("hidden");
+}
+}else{
+select.value="";
+document.getElementById("customPlaceBox").classList.add("hidden");
+}
+}
+
+function changePlace(){
+const value=document.getElementById("place").value;
+const box=document.getElementById("customPlaceBox");
+
+if(value==="__OTHER__"){
+box.classList.remove("hidden");
+}else{
+box.classList.add("hidden");
+document.getElementById("customPlace").value="";
+}
+}
+
+function getSelectedPlace(){
+const value=document.getElementById("place").value;
+
+if(value==="__OTHER__"){
+return document.getElementById("customPlace").value.trim();
+}
+
+return value.trim();
+}
+
+function convertRepairFromDatabase(r){
+return{
+id:String(r.id),
+ticket:r.ticket || "",
+date:r.date || "",
+place:r.place || "",
+worker:r.worker || "",
+hours:Number(r.hours || 0),
+invoiceRef:r.invoice_ref || "",
+issue:r.issue || "",
+notes:r.notes || "",
+beforeImages:Array.isArray(r.before_images)?r.before_images:[],
+afterImages:Array.isArray(r.after_images)?r.after_images:[]
+};
+}
+
+function repairToDatabase(r){
+return{
+id:String(r.id),
+ticket:r.ticket || "",
+date:r.date || "",
+place:r.place || "",
+worker:r.worker || "",
+hours:Number(r.hours || 0),
+invoice_ref:r.invoiceRef || "",
+issue:r.issue || "",
+notes:r.notes || "",
+before_images:Array.isArray(r.beforeImages)?r.beforeImages:[],
+after_images:Array.isArray(r.afterImages)?r.afterImages:[]
+};
+}
+
+function mirrorRepairsLocally(){
+localStorage.setItem("repairs",JSON.stringify(repairs));
+}
+
+async function loadRepairs(){
+let oldRepairs=[];
+
+try{
+oldRepairs=JSON.parse(localStorage.getItem("repairs") || "[]");
+if(!Array.isArray(oldRepairs))oldRepairs=[];
+}catch(e){
+oldRepairs=[];
+}
+
+const {data,error}=await db
+.from("repairs")
+.select("*")
+.order("created_at",{ascending:false});
+
+if(error){
+console.error(error);
+alert(t("loadError"));
+return;
+}
+
+if((data || []).length===0 && oldRepairs.length>0){
+const rows=oldRepairs.map(r=>repairToDatabase({
+...r,
+id:String(r.id || newId())
+}));
+
+const {error:migrateError}=await db.from("repairs").upsert(rows);
+
+if(!migrateError){
+repairs=oldRepairs.map(r=>({...r,id:String(r.id)}));
+mirrorRepairsLocally();
+renderRepairs();
+return;
+}
+
+console.error(migrateError);
+}
+
+repairs=(data || []).map(convertRepairFromDatabase);
+mirrorRepairsLocally();
+renderRepairs();
+}
+
+function applyLanguage(){
+document.documentElement.lang=lang;
+document.documentElement.dir=lang==="ar"?"rtl":"ltr";
+
+document.getElementById("pageTitle").textContent=t("pageTitle");
+document.getElementById("langBtn").textContent=t("langBtn");
+document.getElementById("backBtn").textContent=t("back");
+document.getElementById("formTitle").textContent=editId?t("formEdit"):t("formAdd");
+document.getElementById("ticketLabel").textContent=t("ticket");
+document.getElementById("dateLabel").textContent=t("date");
+document.getElementById("placeLabel").textContent=t("place");
+document.getElementById("customPlaceLabel").textContent=t("customPlace");
+document.getElementById("workerLabel").textContent=t("worker");
+document.getElementById("hoursLabel").textContent=t("hours");
+document.getElementById("invoiceLabel").textContent=t("invoice");
+document.getElementById("issueLabel").textContent=t("issue");
+document.getElementById("notesLabel").textContent=t("notes");
+document.getElementById("beforeLabel").textContent=t("before");
+document.getElementById("afterLabel").textContent=t("after");
+document.getElementById("saveBtn").textContent=editId?t("update"):t("save");
+document.getElementById("cancelBtn").textContent=t("cancel");
+document.getElementById("statsTitle").textContent=t("stats");
+document.getElementById("statRepairsLabel").textContent=t("repairs");
+document.getElementById("statHoursLabel").textContent=t("totalHours");
+document.getElementById("statTicketsLabel").textContent=t("tickets");
+document.getElementById("filtersTitle").textContent=t("filters");
+document.getElementById("filterMonthLabel").textContent=t("month");
+document.getElementById("filterPlaceLabel").textContent=t("searchPlace");
+document.getElementById("filterBtn").textContent=t("search");
+document.getElementById("clearBtn").textContent=t("clear");
+document.getElementById("listTitle").textContent=t("list");
+
+const currentPlace=getSelectedPlace();
+renderPlaceOptions(currentPlace);
+renderRepairs();
+}
+
+function toggleLanguage(){
+lang=lang==="ar"?"de":"ar";
+localStorage.setItem("appLanguage",lang);
+applyLanguage();
+}
+
+function goBack(){
+window.location.href="index.html";
+}
+
+function previewPhotos(inputId,previewId){
+const input=document.getElementById(inputId);
+const preview=document.getElementById(previewId);
+preview.innerHTML="";
+
+Array.from(input.files || []).forEach(file=>{
+const reader=new FileReader();
+reader.onload=e=>{
+const img=document.createElement("img");
+img.src=e.target.result;
+preview.appendChild(img);
+};
+reader.readAsDataURL(file);
+});
+}
+
+function readImages(inputId){
+const files=Array.from(document.getElementById(inputId).files || []);
+
+return Promise.all(files.map(file=>new Promise((resolve,reject)=>{
+const reader=new FileReader();
+reader.onload=e=>resolve(e.target.result);
+reader.onerror=reject;
+reader.readAsDataURL(file);
+})));
+}
+
+async function saveRepair(){
+const ticket=document.getElementById("ticket").value.trim();
+const date=document.getElementById("date").value;
+const place=getSelectedPlace();
+const worker=document.getElementById("worker").value.trim();
+const hours=Number(document.getElementById("hours").value || 0);
+const invoiceRef=document.getElementById("invoiceRef").value.trim();
+const issue=document.getElementById("issue").value.trim();
+const notes=document.getElementById("notes").value.trim();
+
+if(!ticket && !issue){
+alert(t("fillRequired"));
+return;
+}
+
+let newBeforeImages=[];
+let newAfterImages=[];
+
+try{
+newBeforeImages=await readImages("beforePhotos");
+newAfterImages=await readImages("afterPhotos");
+}catch(e){
+console.error(e);
+}
+
+if(editId){
+const old=repairs.find(r=>String(r.id)===String(editId));
+if(!old)return;
+
+const updated={
+...old,ticket,date,place,worker,hours,invoiceRef,issue,notes,
+beforeImages:newBeforeImages.length?newBeforeImages:(old.beforeImages || []),
+afterImages:newAfterImages.length?newAfterImages:(old.afterImages || [])
+};
+
+const {error}=await db
+.from("repairs")
+.update(repairToDatabase(updated))
+.eq("id",String(editId));
+
+if(error){
+console.error(error);
+alert(t("saveError"));
+return;
+}
+
+const index=repairs.findIndex(r=>String(r.id)===String(editId));
+if(index!==-1)repairs[index]=updated;
+
+mirrorRepairsLocally();
+alert(t("updated"));
+
+}else{
+
+const repair={
+id:newId(),ticket,date,place,worker,hours,invoiceRef,issue,notes,
+beforeImages:newBeforeImages,
+afterImages:newAfterImages
+};
+
+const {error}=await db.from("repairs").insert(repairToDatabase(repair));
+
+if(error){
+console.error(error);
+alert(t("saveError"));
+return;
+}
+
+repairs.push(repair);
+mirrorRepairsLocally();
+alert(t("saved"));
+}
+
+clearForm();
+renderRepairs();
+}
+
+function editRepair(id){
+const repair=repairs.find(r=>String(r.id)===String(id));
+if(!repair)return;
+
+editId=String(repair.id);
+
+document.getElementById("ticket").value=repair.ticket || "";
+document.getElementById("date").value=repair.date || "";
+renderPlaceOptions(repair.place || "");
+document.getElementById("worker").value=repair.worker || "";
+document.getElementById("hours").value=repair.hours || "";
+document.getElementById("invoiceRef").value=repair.invoiceRef || "";
+document.getElementById("issue").value=repair.issue || "";
+document.getElementById("notes").value=repair.notes || "";
+
+document.getElementById("beforePhotos").value="";
+document.getElementById("afterPhotos").value="";
+document.getElementById("beforePreview").innerHTML="";
+document.getElementById("afterPreview").innerHTML="";
+
+document.getElementById("formTitle").textContent=t("formEdit");
+document.getElementById("saveBtn").textContent=t("update");
+document.getElementById("cancelBtn").classList.remove("hidden");
+
+window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function cancelEdit(){
+clearForm();
+}
+
+function clearForm(){
+editId=null;
+
+document.getElementById("ticket").value="";
+document.getElementById("date").value="";
+renderPlaceOptions("");
+document.getElementById("customPlace").value="";
+document.getElementById("worker").value="";
+document.getElementById("hours").value="";
+document.getElementById("invoiceRef").value="";
+document.getElementById("issue").value="";
+document.getElementById("notes").value="";
+document.getElementById("beforePhotos").value="";
+document.getElementById("afterPhotos").value="";
+document.getElementById("beforePreview").innerHTML="";
+document.getElementById("afterPreview").innerHTML="";
+
+document.getElementById("formTitle").textContent=t("formAdd");
+document.getElementById("saveBtn").textContent=t("save");
+document.getElementById("cancelBtn").classList.add("hidden");
+}
+
+async function deleteRepair(id){
+if(!confirm(t("confirmDelete")))return;
+
+const {error}=await db.from("repairs").delete().eq("id",String(id));
+
+if(error){
+console.error(error);
+alert(t("deleteError"));
+return;
+}
+
+repairs=repairs.filter(r=>String(r.id)!==String(id));
+mirrorRepairsLocally();
+renderRepairs();
+}
+
+function clearFilters(){
+document.getElementById("filterMonth").value="";
+document.getElementById("filterPlace").value="";
+renderRepairs();
+}
+
+function getFilteredRepairs(){
+const month=document.getElementById("filterMonth").value;
+const place=document.getElementById("filterPlace").value.trim().toLowerCase();
+
+return repairs.filter(repair=>{
+if(month && !(repair.date || "").startsWith(month))return false;
+
+if(place && !String(repair.place || "").toLowerCase().includes(place))return false;
+
+return true;
+});
+}
+
+function renderStats(list){
+const totalHours=list.reduce((sum,r)=>sum+Number(r.hours || 0),0);
+const ticketSet=new Set(list.map(r=>r.ticket).filter(Boolean));
+
+document.getElementById("statRepairs").textContent=list.length;
+document.getElementById("statHours").textContent=totalHours;
+document.getElementById("statTickets").textContent=ticketSet.size;
+}
+
+function renderRepairs(){
+const container=document.getElementById("repairsList");
+container.innerHTML="";
+
+const list=getFilteredRepairs();
+renderStats(list);
+
+if(list.length===0){
+container.innerHTML=`<div class="empty">${escapeHtml(t("noRepairs"))}</div>`;
+return;
+}
+
+list.slice().sort((a,b)=>
+String(b.date || "").localeCompare(String(a.date || ""))
+).forEach(repair=>{
+
+const box=document.createElement("div");
+box.className="repair";
+
+const title=document.createElement("div");
+title.className="repair-title";
+title.textContent=repair.issue || repair.ticket || t("pageTitle");
+
+const info=document.createElement("div");
+info.className="repair-info";
+
+let html="";
+
+if(repair.ticket)
+html+=`<span class="badge">${escapeHtml(t("ticketText"))}: ${escapeHtml(repair.ticket)}</span>`;
+
+if(repair.date)
+html+=`<span class="badge">${escapeHtml(repair.date)}</span>`;
+
+if(repair.place)
+html+=`<span class="badge">${escapeHtml(repair.place)}</span>`;
+
+if(repair.worker)
+html+=`<span class="badge">${escapeHtml(t("workerText"))}: ${escapeHtml(repair.worker)}</span>`;
+
+if(Number(repair.hours || 0))
+html+=`<span class="badge">${escapeHtml(repair.hours)} ${escapeHtml(t("hoursText"))}</span>`;
+
+if(repair.invoiceRef)
+html+=`<span class="badge">${escapeHtml(t("invoiceText"))}: ${escapeHtml(repair.invoiceRef)}</span>`;
+
+info.innerHTML=html;
+
+if(repair.issue){
+const issue=document.createElement("div");
+issue.style.marginTop="10px";
+issue.innerHTML="<strong>"+escapeHtml(t("issue"))+":</strong> "+escapeHtml(repair.issue);
+info.appendChild(issue);
+}
+
+if(repair.notes){
+const notes=document.createElement("div");
+notes.style.marginTop="8px";
+notes.innerHTML="<strong>"+escapeHtml(t("notes"))+":</strong> "+escapeHtml(repair.notes);
+info.appendChild(notes);
+}
+
+box.appendChild(title);
+box.appendChild(info);
+
+const before=Array.isArray(repair.beforeImages)?repair.beforeImages:[];
+const after=Array.isArray(repair.afterImages)?repair.afterImages:[];
+
+if(before.length || after.length){
+const photos=document.createElement("div");
+photos.className="photos";
+
+before.forEach(src=>{
+const img=document.createElement("img");
+img.src=src;
+img.title=t("beforeText");
+photos.appendChild(img);
+});
+
+after.forEach(src=>{
+const img=document.createElement("img");
+img.src=src;
+img.title=t("afterText");
+photos.appendChild(img);
+});
+
+box.appendChild(photos);
+}
+
+const actions=document.createElement("div");
+actions.className="actions";
+
+const edit=document.createElement("button");
+edit.className="edit-btn";
+edit.textContent=t("edit");
+edit.onclick=()=>editRepair(repair.id);
+
+const del=document.createElement("button");
+del.className="delete-btn";
+del.textContent=t("delete");
+del.onclick=()=>deleteRepair(repair.id);
+
+actions.appendChild(edit);
+actions.appendChild(del);
+box.appendChild(actions);
+container.appendChild(box);
+});
+}
+
+function escapeHtml(value){
+return String(value ?? "")
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;")
+.replace(/"/g,"&quot;")
+.replace(/'/g,"&#039;");
+}
+
+async function startPage(){
+const {data:{session}}=await db.auth.getSession();
+
+if(!session){
+window.location.href="login.html";
+return;
+}
+
+applyLanguage();
+await loadHotels();
+await loadRepairs();
+}
+
+startPage();
+
+</script>
+</body>
+</html>

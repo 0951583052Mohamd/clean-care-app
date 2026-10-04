@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clean & Care</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+  font-family:Arial,sans-serif;
+  background:#f4f6f8;
+  margin:0;
+  padding:20px;
+  color:#222;
+}
+.container{max-width:1000px;margin:auto}
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-bottom:20px;
+  flex-wrap:wrap;
+}
+h1,h2{margin:0 0 15px}
+.card{
+  background:white;
+  padding:20px;
+  border-radius:14px;
+  margin-bottom:20px;
+  box-shadow:0 2px 10px rgba(0,0,0,.08);
+}
+input,select,button{
+  width:100%;
+  box-sizing:border-box;
+  padding:11px;
+  margin:5px 0;
+  border:1px solid #ccc;
+  border-radius:8px;
+  font-size:15px;
+}
+button{
+  background:#222;
+  color:white;
+  border:none;
+  cursor:pointer;
+}
+button:hover{opacity:.9}
+.btn-small{width:auto;padding:8px 12px;margin:2px}
+.btn-edit{background:#1976d2}
+.btn-delete{background:#d32f2f}
+.btn-back{background:#555}
+.btn-language{background:#00897b}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:10px;
+}
+.hotel{
+  border:1px solid #ddd;
+  padding:15px;
+  border-radius:10px;
+  margin-top:12px;
+}
+.room{
+  border:1px solid #eee;
+  background:#fafafa;
+  padding:10px;
+  border-radius:8px;
+  margin-top:8px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.stats{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  gap:10px;
+}
+.stat{
+  background:#f1f3f5;
+  padding:15px;
+  border-radius:10px;
+  text-align:center;
+}
+.stat strong{
+  display:block;
+  font-size:24px;
+  margin-bottom:5px;
+}
+.empty{color:#777;padding:10px}
+.area-list{margin-top:10px}
+.area-item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:8px;
+  background:#f8f8f8;
+  border-radius:7px;
+  margin-top:5px;
+}
+.hidden{display:none}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="header">
+<h1 id="pageTitle">الفنادق</h1>
+
+<div>
+<button class="btn-small btn-back" onclick="goHome()" id="backBtn">
+العودة للرئيسية
+</button>
+
+<button class="btn-small btn-language" onclick="toggleLanguage()" id="languageBtn">
+Deutsch
+</button>
+</div>
+</div>
+
+<div class="card">
+
+<h2 id="addHotelTitle">إضافة فندق</h2>
+
+<div class="grid">
+
+<div>
+<label id="hotelNameLabel">اسم الفندق</label>
+<input id="hotelName" type="text" placeholder="اسم الفندق">
+</div>
+
+<div>
+<label id="hotelCityLabel">المدينة</label>
+<input id="hotelCity" type="text" placeholder="المدينة">
+</div>
+
+</div>
+
+<button onclick="saveHotel()" id="saveHotelBtn">
+إضافة الفندق
+</button>
+
+</div>
+
+<div class="card">
+
+<h2 id="hotelsTitle">قائمة الفنادق</h2>
+
+<div class="stats">
+
+<div class="stat">
+<strong id="hotelCount">0</strong>
+<span id="hotelCountText">عدد الفنادق</span>
+</div>
+
+<div class="stat">
+<strong id="roomCount">0</strong>
+<span id="roomCountText">عدد الغرف</span>
+</div>
+
+<div class="stat">
+<strong id="entranceCount">0</strong>
+<span id="entranceCountText">عدد المداخل</span>
+</div>
+
+<div class="stat">
+<strong id="corridorCount">0</strong>
+<span id="corridorCountText">عدد الممرات</span>
+</div>
+
+<div class="stat">
+<strong id="stairsCount">0</strong>
+<span id="stairsCountText">عدد الأدراج</span>
+</div>
+
+</div>
+
+<div id="hotelsList"></div>
+
+</div>
+
+<div class="card hidden" id="roomCard">
+
+<h2 id="roomsTitle">إدارة الغرف</h2>
+
+<div id="selectedHotelName"></div>
+
+<div class="grid">
+
+<div>
+<label id="roomNumberLabel">رقم الغرفة</label>
+<input id="roomNumber" type="text" placeholder="رقم الغرفة">
+</div>
+
+<div>
+<label id="roomTypeLabel">نوع الغرفة</label>
+
+<select id="roomType">
+<option value="1">1</option>
+<option value="2">2</option>
+<option value="3">3</option>
+<option value="4">4</option>
+</select>
+
+</div>
+
+</div>
+
+<button onclick="saveRoom()" id="saveRoomBtn">
+إضافة الغرفة
+</button>
+
+<button onclick="closeRoomManager()" class="btn-back" id="closeRoomBtn">
+إغلاق
+</button>
+
+<div id="roomsList"></div>
+
+</div>
+
+</div>
+
+<script>
+
+/* =========================
+   Supabase
+========================= */
+
+const SUPABASE_URL =
+"https://vjllurkvzvumsfjxuxuz.supabase.co";
+
+const SUPABASE_PUBLISHABLE_KEY =
+"sb_publishable_4TiwsqWNph3wQzdoASlasg_gh4x1Atz";
+
+const supabaseClient =
+window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
+
+
+/* =========================
+   البيانات
+========================= */
+
+let language =
+localStorage.getItem("appLanguage") || "ar";
+
+let hotels = [];
+
+let editingHotelId = null;
+let editingRoomId = null;
+let selectedHotelId = null;
+
+
+/* =========================
+   الترجمة
+========================= */
+
+const translations = {
+
+ar:{
+title:"الفنادق",
+back:"العودة للرئيسية",
+language:"Deutsch",
+addHotel:"إضافة فندق",
+hotelName:"اسم الفندق",
+city:"المدينة",
+addHotelButton:"إضافة الفندق",
+saveChanges:"حفظ التعديلات",
+hotels:"قائمة الفنادق",
+hotelCount:"عدد الفنادق",
+roomCount:"عدد الغرف",
+entranceCount:"عدد المداخل",
+corridorCount:"عدد الممرات",
+stairsCount:"عدد الأدراج",
+noHotels:"لا يوجد فنادق حتى الآن.",
+rooms:"الغرف",
+roomNumber:"رقم الغرفة",
+roomType:"نوع الغرفة",
+addRoom:"إضافة الغرفة",
+close:"إغلاق",
+edit:"تعديل",
+delete:"حذف",
+entrances:"المداخل",
+corridors:"الممرات",
+stairs:"الأدراج",
+addEntrance:"إضافة مدخل",
+addCorridor:"إضافة ممر",
+addStairs:"إضافة درج",
+noRooms:"لا توجد غرف لهذا الفندق.",
+hotelAdded:"تمت إضافة الفندق.",
+hotelUpdated:"تم تعديل الفندق.",
+hotelDeleted:"تم حذف الفندق.",
+roomAdded:"تمت إضافة الغرفة.",
+roomUpdated:"تم تعديل الغرفة.",
+roomDeleted:"تم حذف الغرفة.",
+enterHotelName:"اكتب اسم الفندق.",
+enterRoomNumber:"اكتب رقم الغرفة.",
+duplicateRoom:"رقم الغرفة موجود مسبقاً.",
+confirmDeleteHotel:"هل تريد حذف هذا الفندق؟",
+confirmDeleteRoom:"هل تريد حذف هذه الغرفة؟",
+roomTypeText:"أشخاص",
+entranceName:"مدخل",
+corridorName:"ممر",
+stairsName:"درج",
+remove:"حذف",
+loadError:"تعذر تحميل الفنادق من قاعدة البيانات.",
+saveError:"تعذر حفظ الفندق.",
+deleteError:"تعذر حذف الفندق."
+},
+
+de:{
+title:"Hotels",
+back:"Startseite",
+language:"العربية",
+addHotel:"Hotel hinzufügen",
+hotelName:"Hotelname",
+city:"Stadt",
+addHotelButton:"Hotel hinzufügen",
+saveChanges:"Änderungen speichern",
+hotels:"Hotelliste",
+hotelCount:"Anzahl Hotels",
+roomCount:"Anzahl Zimmer",
+entranceCount:"Anzahl Eingänge",
+corridorCount:"Anzahl Flure",
+stairsCount:"Anzahl Treppen",
+noHotels:"Noch keine Hotels vorhanden.",
+rooms:"Zimmer",
+roomNumber:"Zimmernummer",
+roomType:"Zimmertyp",
+addRoom:"Zimmer hinzufügen",
+close:"Schließen",
+edit:"Bearbeiten",
+delete:"Löschen",
+entrances:"Eingänge",
+corridors:"Flure",
+stairs:"Treppen",
+addEntrance:"Eingang hinzufügen",
+addCorridor:"Flur hinzufügen",
+addStairs:"Treppe hinzufügen",
+noRooms:"Keine Zimmer für dieses Hotel.",
+hotelAdded:"Hotel wurde hinzugefügt.",
+hotelUpdated:"Hotel wurde geändert.",
+hotelDeleted:"Hotel wurde gelöscht.",
+roomAdded:"Zimmer wurde hinzugefügt.",
+roomUpdated:"Zimmer wurde geändert.",
+roomDeleted:"Zimmer wurde gelöscht.",
+enterHotelName:"Bitte Hotelname eingeben.",
+enterRoomNumber:"Bitte Zimmernummer eingeben.",
+duplicateRoom:"Diese Zimmernummer existiert bereits.",
+confirmDeleteHotel:"Möchten Sie dieses Hotel löschen?",
+confirmDeleteRoom:"Möchten Sie dieses Zimmer löschen?",
+roomTypeText:"Personen",
+entranceName:"Eingang",
+corridorName:"Flur",
+stairsName:"Treppe",
+remove:"Löschen",
+loadError:"Hotels konnten nicht geladen werden.",
+saveError:"Hotel konnte nicht gespeichert werden.",
+deleteError:"Hotel konnte nicht gelöscht werden."
+}
+
+};
+
+function t(key){
+  return translations[language][key] || key;
+}
+
+function escapeHtml(value){
+  return String(value ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+
+function newId(){
+  return Date.now().toString() +
+    Math.random().toString(16).slice(2);
+}
+
+
+/* =========================
+   نسخة محلية مؤقتة
+========================= */
+
+function mirrorHotelsLocally(){
+  localStorage.setItem(
+    "hotels",
+    JSON.stringify(hotels)
+  );
+}
+
+
+/* =========================
+   تحميل الفنادق + نقل القديم
+========================= */
+
+async function loadHotels(){
+
+  const oldHotels =
+    JSON.parse(localStorage.getItem("hotels") || "[]");
+
+  const {data,error} =
+    await supabaseClient
+      .from("hotels")
+      .select("id,name,city,rooms,entrances,corridors,stairs")
+      .order("created_at",{ascending:true});
+
+  if(error){
+    console.error("Hotels load error:",error);
+    alert(t("loadError"));
+    return;
+  }
+
+  if((data || []).length===0 && oldHotels.length>0){
+
+    const rows = oldHotels.map(hotel=>({
+      id:String(hotel.id),
+      name:hotel.name || "",
+      city:hotel.city || "",
+      rooms:Array.isArray(hotel.rooms) ? hotel.rooms : [],
+      entrances:Array.isArray(hotel.entrances) ? hotel.entrances : [],
+      corridors:Array.isArray(hotel.corridors) ? hotel.corridors : [],
+      stairs:Array.isArray(hotel.stairs) ? hotel.stairs : []
+    }));
+
+    const {error:migrationError} =
+      await supabaseClient
+        .from("hotels")
+        .upsert(rows,{onConflict:"id"});
+
+    if(migrationError){
+      console.error("Hotels migration error:",migrationError);
+      alert(t("saveError"));
+      return;
+    }
+
+    const reload =
+      await supabaseClient
+        .from("hotels")
+        .select("id,name,city,rooms,entrances,corridors,stairs")
+        .order("created_at",{ascending:true});
+
+    if(reload.error){
+      console.error(reload.error);
+      alert(t("loadError"));
+      return;
+    }
+
+    hotels = reload.data || [];
+
+  }else{
+    hotels = data || [];
+  }
+
+  normalizeHotels();
+  mirrorHotelsLocally();
+  updateLanguage();
+}
+
+function normalizeHotels(){
+
+  hotels.forEach(hotel=>{
+    hotel.id=String(hotel.id);
+    hotel.rooms=Array.isArray(hotel.rooms) ? hotel.rooms : [];
+    hotel.entrances=Array.isArray(hotel.entrances) ? hotel.entrances : [];
+    hotel.corridors=Array.isArray(hotel.corridors) ? hotel.corridors : [];
+    hotel.stairs=Array.isArray(hotel.stairs) ? hotel.stairs : [];
+  });
+}
+
+
+/* =========================
+   تحديث فندق كامل
+========================= */
+
+async function updateHotelInSupabase(hotel){
+
+  const {error} =
+    await supabaseClient
+      .from("hotels")
+      .update({
+        name:hotel.name,
+        city:hotel.city || "",
+        rooms:hotel.rooms || [],
+        entrances:hotel.entrances || [],
+        corridors:hotel.corridors || [],
+        stairs:hotel.stairs || []
+      })
+      .eq("id",String(hotel.id));
+
+  if(error){
+    console.error(error);
+    alert(t("saveError"));
+    return false;
+  }
+
+  mirrorHotelsLocally();
+  return true;
+}
+
+
+/* =========================
+   اللغة
+========================= */
+
+function updateLanguage(){
+
+  document.documentElement.lang=language;
+  document.documentElement.dir=
+    language==="ar" ? "rtl":"ltr";
+
+  document.getElementById("pageTitle").textContent=t("title");
+  document.getElementById("backBtn").textContent=t("back");
+  document.getElementById("languageBtn").textContent=t("language");
+  document.getElementById("addHotelTitle").textContent=t("addHotel");
+  document.getElementById("hotelNameLabel").textContent=t("hotelName");
+  document.getElementById("hotelCityLabel").textContent=t("city");
+
+  document.getElementById("hotelName").placeholder=t("hotelName");
+  document.getElementById("hotelCity").placeholder=t("city");
+
+  document.getElementById("hotelsTitle").textContent=t("hotels");
+  document.getElementById("hotelCountText").textContent=t("hotelCount");
+  document.getElementById("roomCountText").textContent=t("roomCount");
+  document.getElementById("entranceCountText").textContent=t("entranceCount");
+  document.getElementById("corridorCountText").textContent=t("corridorCount");
+  document.getElementById("stairsCountText").textContent=t("stairsCount");
+
+  document.getElementById("roomsTitle").textContent=t("rooms");
+  document.getElementById("roomNumberLabel").textContent=t("roomNumber");
+  document.getElementById("roomTypeLabel").textContent=t("roomType");
+  document.getElementById("roomNumber").placeholder=t("roomNumber");
+  document.getElementById("closeRoomBtn").textContent=t("close");
+
+  document.getElementById("saveHotelBtn").textContent=
+    editingHotelId ? t("saveChanges") : t("addHotelButton");
+
+  document.getElementById("saveRoomBtn").textContent=
+    editingRoomId ? t("saveChanges") : t("addRoom");
+
+  renderHotels();
+
+  if(selectedHotelId){
+    renderRooms();
+  }
+}
+
+function toggleLanguage(){
+
+  language=language==="ar" ? "de":"ar";
+
+  localStorage.setItem(
+    "appLanguage",
+    language
+  );
+
+  updateLanguage();
+}
+
+
+/* =========================
+   حفظ الفندق
+========================= */
+
+async function saveHotel(){
+
+  const name=
+    document.getElementById("hotelName").value.trim();
+
+  const city=
+    document.getElementById("hotelCity").value.trim();
+
+  if(!name){
+    alert(t("enterHotelName"));
+    return;
+  }
+
+  if(editingHotelId){
+
+    const hotel =
+      hotels.find(
+        h=>String(h.id)===String(editingHotelId)
+      );
+
+    if(!hotel)return;
+
+    hotel.name=name;
+    hotel.city=city;
+
+    const ok=await updateHotelInSupabase(hotel);
+
+    if(!ok)return;
+
+    alert(t("hotelUpdated"));
+
+  }else{
+
+    const hotel={
+      id:newId(),
+      name:name,
+      city:city,
+      rooms:[],
+      entrances:[],
+      corridors:[],
+      stairs:[]
+    };
+
+    const {error} =
+      await supabaseClient
+        .from("hotels")
+        .insert(hotel);
+
+    if(error){
+      console.error(error);
+      alert(t("saveError"));
+      return;
+    }
+
+    hotels.push(hotel);
+    mirrorHotelsLocally();
+
+    alert(t("hotelAdded"));
+  }
+
+  document.getElementById("hotelName").value="";
+  document.getElementById("hotelCity").value="";
+
+  editingHotelId=null;
+
+  updateLanguage();
+}
+
+function editHotel(id){
+
+  const hotel =
+    hotels.find(
+      h=>String(h.id)===String(id)
+    );
+
+  if(!hotel)return;
+
+  editingHotelId=String(id);
+
+  document.getElementById("hotelName").value=
+    hotel.name || "";
+
+  document.getElementById("hotelCity").value=
+    hotel.city || "";
+
+  updateLanguage();
+
+  window.scrollTo({
+    top:0,
+    behavior:"smooth"
+  });
+}
+
+async function deleteHotel(id){
+
+  if(!confirm(t("confirmDeleteHotel")))return;
+
+  const {error} =
+    await supabaseClient
+      .from("hotels")
+      .delete()
+      .eq("id",String(id));
+
+  if(error){
+    console.error(error);
+    alert(t("deleteError"));
+    return;
+  }
+
+  hotels=
+    hotels.filter(
+      h=>String(h.id)!==String(id)
+    );
+
+  if(String(selectedHotelId)===String(id)){
+    selectedHotelId=null;
+    editingRoomId=null;
+    document.getElementById("roomCard")
+      .classList.add("hidden");
+  }
+
+  mirrorHotelsLocally();
+
+  alert(t("hotelDeleted"));
+  updateLanguage();
+}/* =========================
+   إدارة الغرف
+========================= */
+
+function openRoomManager(id){
+
+  selectedHotelId=String(id);
+  editingRoomId=null;
+
+  const hotel=
+    hotels.find(
+      h=>String(h.id)===String(id)
+    );
+
+  if(!hotel)return;
+
+  document.getElementById("roomCard")
+    .classList.remove("hidden");
+
+  document.getElementById("selectedHotelName").innerHTML=
+    "<strong>"+escapeHtml(hotel.name)+"</strong>"+
+    (hotel.city ? " - "+escapeHtml(hotel.city):"");
+
+  document.getElementById("roomNumber").value="";
+  document.getElementById("roomType").value="1";
+
+  updateLanguage();
+
+  document.getElementById("roomCard")
+    .scrollIntoView({behavior:"smooth"});
+}
+
+function closeRoomManager(){
+
+  selectedHotelId=null;
+  editingRoomId=null;
+
+  document.getElementById("roomCard")
+    .classList.add("hidden");
+}
+
+
+async function saveRoom(){
+
+  if(!selectedHotelId)return;
+
+  const hotel=
+    hotels.find(
+      h=>String(h.id)===String(selectedHotelId)
+    );
+
+  if(!hotel)return;
+
+  if(!Array.isArray(hotel.rooms)){
+    hotel.rooms=[];
+  }
+
+  const number=
+    document.getElementById("roomNumber")
+      .value.trim();
+
+  const type=
+    document.getElementById("roomType").value;
+
+  if(!number){
+    alert(t("enterRoomNumber"));
+    return;
+  }
+
+  const duplicate=
+    hotel.rooms.some(room=>
+      String(room.number)===String(number) &&
+      String(room.id)!==String(editingRoomId)
+    );
+
+  if(duplicate){
+    alert(t("duplicateRoom"));
+    return;
+  }
+
+  if(editingRoomId){
+
+    const room=
+      hotel.rooms.find(
+        r=>String(r.id)===String(editingRoomId)
+      );
+
+    if(room){
+      room.number=number;
+      room.type=type;
+    }
+
+    const ok=
+      await updateHotelInSupabase(hotel);
+
+    if(!ok)return;
+
+    alert(t("roomUpdated"));
+
+  }else{
+
+    hotel.rooms.push({
+      id:newId(),
+      number:number,
+      type:type
+    });
+
+    const ok=
+      await updateHotelInSupabase(hotel);
+
+    if(!ok){
+      hotel.rooms.pop();
+      return;
+    }
+
+    alert(t("roomAdded"));
+  }
+
+  editingRoomId=null;
+
+  document.getElementById("roomNumber").value="";
+  document.getElementById("roomType").value="1";
+
+  updateLanguage();
+}
+
+
+function editRoom(id){
+
+  const hotel=
+    hotels.find(
+      h=>String(h.id)===String(selectedHotelId)
+    );
+
+  if(!hotel)return;
+
+  const room=
+    (hotel.rooms || []).find(
+      r=>String(r.id)===String(id)
+    );
+
+  if(!room)return;
+
+  editingRoomId=String(id);
+
+  document.getElementById("roomNumber").value=
+    room.number || "";
+
+  document.getElementById("roomType").value=
+    String(room.type || "1");
+
+  updateLanguage();
+}
+
+
+async function deleteRoom(id){
+
+  const hotel=
+    hotels.find(
+      h=>String(h.id)===String(selectedHotelId)
+    );
+
+  if(!hotel)return;
+
+  if(!confirm(t("confirmDeleteRoom")))return;
+
+  const oldRooms=[...(hotel.rooms || [])];
+
+  hotel.rooms=
+    oldRooms.filter(
+      r=>String(r.id)!==String(id)
+    );
+
+  const ok=
+    await updateHotelInSupabase(hotel);
+
+  if(!ok){
+    hotel.rooms=oldRooms;
+    return;
+  }
+
+  if(String(editingRoomId)===String(id)){
+    editingRoomId=null;
+  }
+
+  alert(t("roomDeleted"));
+
+  renderRooms();
+  renderHotels();
+}
+
+
+/* =========================
+   المداخل والممرات والأدراج
+========================= */
+
+async function addArea(hotelId,type){
+
+  const hotel=
+    hotels.find(
+      h=>String(h.id)===String(hotelId)
+    );
+
+  if(!hotel)return;
+
+  if(!Array.isArray(hotel[type])){
+    hotel[type]=[];
+  }
+
+  hotel[type].push({
+    id:newId(),
+    name:""
+  });
+
+  const ok=
+    await updateHotelInSupabase(hotel);
+
+  if(!ok){
+    hotel[type].pop();
+    return;
+  }
+
+  renderHotels();
+}
+
+
+async function removeArea(hotelId,type,id){
+
+  const hotel=
+    hotels.find(
+      h=>String(h.id)===String(hotelId)
+    );
+
+  if(!hotel)return;
+
+  const oldItems=[...(hotel[type] || [])];
+
+  hotel[type]=
+    oldItems.filter(
+      item=>String(item.id)!==String(id)
+    );
+
+  const ok=
+    await updateHotelInSupabase(hotel);
+
+  if(!ok){
+    hotel[type]=oldItems;
+    return;
+  }
+
+  renderHotels();
+}
+
+
+/* =========================
+   عرض الغرف
+========================= */
+
+function renderRooms(){
+
+  const hotel=
+    hotels.find(
+      h=>String(h.id)===String(selectedHotelId)
+    );
+
+  if(!hotel)return;
+
+  document.getElementById("selectedHotelName").innerHTML=
+    "<strong>"+escapeHtml(hotel.name)+"</strong>"+
+    (hotel.city ? " - "+escapeHtml(hotel.city):"");
+
+  const list=
+    document.getElementById("roomsList");
+
+  const rooms=hotel.rooms || [];
+
+  if(!rooms.length){
+
+    list.innerHTML=
+      '<div class="empty">'+t("noRooms")+"</div>";
+
+    return;
+  }
+
+  list.innerHTML=
+    rooms.map(room=>`
+
+      <div class="room">
+
+        <div>
+          <strong>${escapeHtml(room.number)}</strong>
+          <span>
+            - ${escapeHtml(room.type)}
+            ${t("roomTypeText")}
+          </span>
+        </div>
+
+        <div>
+
+          <button
+            class="btn-small btn-edit"
+            onclick='editRoom(${JSON.stringify(String(room.id))})'>
+            ${t("edit")}
+          </button>
+
+          <button
+            class="btn-small btn-delete"
+            onclick='deleteRoom(${JSON.stringify(String(room.id))})'>
+            ${t("delete")}
+          </button>
+
+        </div>
+
+      </div>
+
+    `).join("");
+}
+
+
+/* =========================
+   عرض الفنادق
+========================= */
+
+function renderHotels(){
+
+  const list=
+    document.getElementById("hotelsList");
+
+  if(!hotels.length){
+
+    list.innerHTML=
+      '<div class="empty">'+t("noHotels")+"</div>";
+
+  }else{
+
+    list.innerHTML=
+      hotels.map(hotel=>{
+
+        const rooms=hotel.rooms || [];
+        const entrances=hotel.entrances || [];
+        const corridors=hotel.corridors || [];
+        const stairs=hotel.stairs || [];
+
+        const hotelId=
+          JSON.stringify(String(hotel.id));
+
+        return `
+
+        <div class="hotel">
+
+          <h3>
+            ${escapeHtml(hotel.name)}
+          </h3>
+
+          <div>
+            ${escapeHtml(hotel.city || "")}
+          </div>
+
+          <p>
+            ${t("rooms")}: ${rooms.length}
+            |
+            ${t("entrances")}: ${entrances.length}
+            |
+            ${t("corridors")}: ${corridors.length}
+            |
+            ${t("stairs")}: ${stairs.length}
+          </p>
+
+          <div>
+
+            <button
+              class="btn-small btn-edit"
+              onclick='editHotel(${hotelId})'>
+              ${t("edit")}
+            </button>
+
+            <button
+              class="btn-small"
+              onclick='openRoomManager(${hotelId})'>
+              ${t("rooms")}
+            </button>
+
+            <button
+              class="btn-small btn-delete"
+              onclick='deleteHotel(${hotelId})'>
+              ${t("delete")}
+            </button>
+
+          </div>
+
+
+          <div class="area-list">
+
+            <div class="area-item">
+
+              <span>
+                ${t("entrances")}: ${entrances.length}
+              </span>
+
+              <button
+                class="btn-small"
+                onclick='addArea(${hotelId},"entrances")'>
+                +
+              </button>
+
+            </div>
+
+
+            <div class="area-item">
+
+              <span>
+                ${t("corridors")}: ${corridors.length}
+              </span>
+
+              <button
+                class="btn-small"
+                onclick='addArea(${hotelId},"corridors")'>
+                +
+              </button>
+
+            </div>
+
+
+            <div class="area-item">
+
+              <span>
+                ${t("stairs")}: ${stairs.length}
+              </span>
+
+              <button
+                class="btn-small"
+                onclick='addArea(${hotelId},"stairs")'>
+                +
+              </button>
+
+            </div>
+
+          </div>
+
+
+          ${
+            entrances.length
+            ?
+            `<div class="area-list">
+
+              ${entrances.map((item,index)=>`
+
+                <div class="area-item">
+
+                  <span>
+                    ${t("entranceName")} ${index+1}
+                  </span>
+
+                  <button
+                    class="btn-small btn-delete"
+                    onclick='removeArea(
+                      ${hotelId},
+                      "entrances",
+                      ${JSON.stringify(String(item.id))}
+                    )'>
+                    ${t("remove")}
+                  </button>
+
+                </div>
+
+              `).join("")}
+
+            </div>`
+            :""
+          }
+
+
+          ${
+            corridors.length
+            ?
+            `<div class="area-list">
+
+              ${corridors.map((item,index)=>`
+
+                <div class="area-item">
+
+                  <span>
+                    ${t("corridorName")} ${index+1}
+                  </span>
+
+                  <button
+                    class="btn-small btn-delete"
+                    onclick='removeArea(
+                      ${hotelId},
+                      "corridors",
+                      ${JSON.stringify(String(item.id))}
+                    )'>
+                    ${t("remove")}
+                  </button>
+
+                </div>
+
+              `).join("")}
+
+            </div>`
+            :""
+          }
+
+
+          ${
+            stairs.length
+            ?
+            `<div class="area-list">
+
+              ${stairs.map((item,index)=>`
+
+                <div class="area-item">
+
+                  <span>
+                    ${t("stairsName")} ${index+1}
+                  </span>
+
+                  <button
+                    class="btn-small btn-delete"
+                    onclick='removeArea(
+                      ${hotelId},
+                      "stairs",
+                      ${JSON.stringify(String(item.id))}
+                    )'>
+                    ${t("remove")}
+                  </button>
+
+                </div>
+
+              `).join("")}
+
+            </div>`
+            :""
+          }
+
+        </div>
+
+        `;
+
+      }).join("");
+  }
+
+
+  document.getElementById("hotelCount").textContent=
+    hotels.length;
+
+  document.getElementById("roomCount").textContent=
+    hotels.reduce(
+      (sum,h)=>sum+((h.rooms || []).length),
+      0
+    );
+
+  document.getElementById("entranceCount").textContent=
+    hotels.reduce(
+      (sum,h)=>sum+((h.entrances || []).length),
+      0
+    );
+
+  document.getElementById("corridorCount").textContent=
+    hotels.reduce(
+      (sum,h)=>sum+((h.corridors || []).length),
+      0
+    );
+
+  document.getElementById("stairsCount").textContent=
+    hotels.reduce(
+      (sum,h)=>sum+((h.stairs || []).length),
+      0
+    );
+}
+
+
+/* =========================
+   الرئيسية
+========================= */
+
+function goHome(){
+  window.location.href="index.html";
+}
+
+
+/* =========================
+   تشغيل الصفحة
+========================= */
+
+async function startPage(){
+
+  const {
+    data:{session},
+    error
+  }=await supabaseClient.auth.getSession();
+
+  if(error || !session){
+    window.location.href="login.html";
+    return;
+  }
+
+  await loadHotels();
+}
+
+startPage();
+
+</script>
+
+</body>
+</html>

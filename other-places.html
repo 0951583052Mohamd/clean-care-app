@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clean & Care - أماكن أخرى</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Tahoma,sans-serif;background:#f4f6f8;color:#222}
+header{background:#1f2937;color:white;padding:18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+header h1{margin:0;font-size:24px}
+button{border:none;border-radius:8px;padding:10px 16px;cursor:pointer;font-size:15px;background:#2563eb;color:white}
+button:hover{opacity:.9}
+.btn-danger{background:#dc2626}
+.btn-edit{background:#f59e0b}
+.btn-secondary{background:#6b7280}
+.container{max-width:1200px;margin:20px auto;padding:0 15px}
+.card{background:white;border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.card h2{margin-top:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field.full{grid-column:1/-1}
+label{font-weight:bold}
+input,textarea,select{width:100%;padding:11px;border:1px solid #d1d5db;border-radius:8px;font-size:15px;background:white}
+textarea{min-height:90px;resize:vertical}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;margin-bottom:20px}
+.stat{background:white;padding:18px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.07);text-align:center}
+.stat-number{font-size:28px;font-weight:bold;margin-top:8px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:900px}
+th,td{border-bottom:1px solid #e5e7eb;padding:12px 10px;text-align:right;vertical-align:top}
+th{background:#f3f4f6}
+.photo-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.photo-grid img{width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #ddd}
+.empty{text-align:center;padding:30px;color:#777}
+.hidden{display:none}
+.small{font-size:13px;color:#666}
+@media(max-width:600px){
+header{align-items:stretch}
+header button{width:100%}
+.container{padding:0 10px}
+.card{padding:15px}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1 id="pageTitle">أماكن أخرى</h1>
+<div>
+<button onclick="toggleLanguage()" id="languageBtn">Deutsch</button>
+<button onclick="goHome()" class="btn-secondary" id="backBtn">الرئيسية</button>
+</div>
+</header>
+
+<div class="container">
+
+<div class="stats">
+<div class="stat">
+<div id="statJobsLabel">عدد الأعمال</div>
+<div class="stat-number" id="statJobs">0</div>
+</div>
+
+<div class="stat">
+<div id="statPlacesLabel">عدد الأماكن</div>
+<div class="stat-number" id="statPlaces">0</div>
+</div>
+
+<div class="stat">
+<div id="statHoursLabel">مجموع الساعات</div>
+<div class="stat-number" id="statHours">0</div>
+</div>
+</div>
+
+<div class="card">
+<h2 id="formTitle">إضافة عمل جديد</h2>
+
+<div class="grid">
+
+<div class="field">
+<label id="placeLabel">اسم المكان</label>
+<input type="text" id="place">
+</div>
+
+<div class="field">
+<label id="typeLabel">نوع المكان / العمل</label>
+<input type="text" id="type">
+</div>
+
+<div class="field">
+<label id="startDateLabel">تاريخ البداية</label>
+<input type="date" id="startDate">
+</div>
+
+<div class="field">
+<label id="endDateLabel">تاريخ النهاية</label>
+<input type="date" id="endDate">
+</div>
+
+<div class="field">
+<label id="workersLabel">العاملون</label>
+<input type="text" id="workers">
+</div>
+
+<div class="field">
+<label id="hoursLabel">عدد الساعات</label>
+<input type="number" id="hours" min="0" step="0.5">
+</div>
+
+<div class="field full">
+<label id="tasksLabel">الأعمال / المهام</label>
+<textarea id="tasks"></textarea>
+</div>
+
+<div class="field full">
+<label id="materialsLabel">المواد المستخدمة</label>
+<textarea id="materials"></textarea>
+</div>
+
+<div class="field full">
+<label id="photosLabel">صور</label>
+<input type="file" id="photos" accept="image/*" multiple>
+<div class="small" id="photosHelp">يمكنك اختيار أكثر من صورة.</div>
+<div id="photoPreview" class="photo-grid"></div>
+</div>
+
+<div class="field full">
+<label id="notesLabel">ملاحظات</label>
+<textarea id="notes"></textarea>
+</div>
+
+</div>
+
+<div class="actions">
+<button onclick="savePlace()" id="saveBtn">حفظ</button>
+<button onclick="cancelEdit()" class="btn-secondary hidden" id="cancelBtn">إلغاء</button>
+</div>
+</div>
+
+<div class="card">
+<h2 id="filterTitle">البحث والتصفية</h2>
+
+<div class="grid">
+
+<div class="field">
+<label id="filterPlaceLabel">المكان</label>
+<input type="text" id="filterPlace" oninput="render()">
+</div>
+
+<div class="field">
+<label id="filterTypeLabel">النوع</label>
+<input type="text" id="filterType" oninput="render()">
+</div>
+
+<div class="field">
+<label id="filterMonthLabel">الشهر</label>
+<input type="month" id="filterMonth" onchange="render()">
+</div>
+
+</div>
+</div>
+
+<div class="card">
+<h2 id="listTitle">الأعمال المسجلة</h2>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th id="thPlace">المكان</th>
+<th id="thType">النوع</th>
+<th id="thDate">التاريخ</th>
+<th id="thWorkers">العاملون</th>
+<th id="thTasks">المهام</th>
+<th id="thHours">الساعات</th>
+<th id="thMaterials">المواد</th>
+<th id="thPhotos">الصور</th>
+<th id="thActions">الإجراءات</th>
+</tr>
+</thead>
+<tbody id="placesTable"></tbody>
+</table>
+</div>
+
+<div id="emptyMessage" class="empty hidden">لا توجد أعمال مسجلة.</div>
+</div>
+
+</div>
+
+<script>
+const SUPABASE_URL="https://vjllurkvzvumsfjxuxuz.supabase.co";
+const SUPABASE_KEY="sb_publishable_4TiwsqWNph3wQzdoASlasg_gh4x1Atz";
+const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+let language=localStorage.getItem("appLanguage") || "ar";
+let places=[];
+let editId=null;
+let selectedPhotos=[];
+
+const translations={
+ar:{
+pageTitle:"أماكن أخرى",languageBtn:"Deutsch",backBtn:"الرئيسية",
+statJobsLabel:"عدد الأعمال",statPlacesLabel:"عدد الأماكن",statHoursLabel:"مجموع الساعات",
+formAdd:"إضافة عمل جديد",formEdit:"تعديل العمل",
+placeLabel:"اسم المكان",typeLabel:"نوع المكان / العمل",
+startDateLabel:"تاريخ البداية",endDateLabel:"تاريخ النهاية",
+workersLabel:"العاملون",hoursLabel:"عدد الساعات",
+tasksLabel:"الأعمال / المهام",materialsLabel:"المواد المستخدمة",
+photosLabel:"صور",photosHelp:"يمكنك اختيار أكثر من صورة.",notesLabel:"ملاحظات",
+saveBtn:"حفظ",updateBtn:"تحديث",cancelBtn:"إلغاء",
+filterTitle:"البحث والتصفية",filterPlaceLabel:"المكان",
+filterTypeLabel:"النوع",filterMonthLabel:"الشهر",
+listTitle:"الأعمال المسجلة",thPlace:"المكان",thType:"النوع",
+thDate:"التاريخ",thWorkers:"العاملون",thTasks:"المهام",
+thHours:"الساعات",thMaterials:"المواد",thPhotos:"الصور",
+thActions:"الإجراءات",edit:"تعديل",delete:"حذف",
+empty:"لا توجد أعمال مسجلة.",noPhotos:"لا توجد",
+confirmDelete:"هل أنت متأكد من حذف هذا العمل؟",
+enterPlace:"يرجى إدخال اسم المكان.",
+saved:"تم حفظ العمل بنجاح.",updated:"تم تحديث العمل بنجاح.",
+saveError:"حدث خطأ أثناء حفظ العمل.",
+deleteError:"حدث خطأ أثناء حذف العمل.",
+loadError:"تعذر تحميل الأعمال.",
+placeholderWorkers:"مثال: أحمد، محمد، علي",
+noDate:"بدون تاريخ",hours:"ساعة",noValue:"-"
+},
+de:{
+pageTitle:"Andere Orte",languageBtn:"العربية",backBtn:"Startseite",
+statJobsLabel:"Anzahl der Arbeiten",statPlacesLabel:"Anzahl der Orte",
+statHoursLabel:"Gesamtstunden",formAdd:"Neue Arbeit hinzufügen",
+formEdit:"Arbeit bearbeiten",placeLabel:"Name des Ortes",
+typeLabel:"Art des Ortes / der Arbeit",startDateLabel:"Startdatum",
+endDateLabel:"Enddatum",workersLabel:"Mitarbeiter",
+hoursLabel:"Arbeitsstunden",tasksLabel:"Arbeiten / Aufgaben",
+materialsLabel:"Verwendete Materialien",photosLabel:"Fotos",
+photosHelp:"Sie können mehrere Fotos auswählen.",notesLabel:"Notizen",
+saveBtn:"Speichern",updateBtn:"Aktualisieren",cancelBtn:"Abbrechen",
+filterTitle:"Suche und Filter",filterPlaceLabel:"Ort",
+filterTypeLabel:"Art",filterMonthLabel:"Monat",
+listTitle:"Gespeicherte Arbeiten",thPlace:"Ort",thType:"Art",
+thDate:"Datum",thWorkers:"Mitarbeiter",thTasks:"Aufgaben",
+thHours:"Stunden",thMaterials:"Materialien",thPhotos:"Fotos",
+thActions:"Aktionen",edit:"Bearbeiten",delete:"Löschen",
+empty:"Keine Arbeiten vorhanden.",noPhotos:"Keine",
+confirmDelete:"Möchten Sie diese Arbeit wirklich löschen?",
+enterPlace:"Bitte geben Sie den Namen des Ortes ein.",
+saved:"Arbeit erfolgreich gespeichert.",updated:"Arbeit erfolgreich aktualisiert.",
+saveError:"Fehler beim Speichern.",
+deleteError:"Fehler beim Löschen.",
+loadError:"Arbeiten konnten nicht geladen werden.",
+placeholderWorkers:"Beispiel: Ahmed, Mohammed, Ali",
+noDate:"Kein Datum",hours:"Stunden",noValue:"-"
+}
+};
+
+function t(key){
+return translations[language][key] || key;
+}
+
+function newId(){
+return Date.now().toString()+Math.random().toString(16).slice(2);
+}
+
+function placeToDatabase(item){
+return{
+id:String(item.id),
+place:item.place || "",
+type:item.type || "",
+start_date:item.startDate || "",
+end_date:item.endDate || "",
+date:item.date || "",
+workers:item.workers || "",
+hours:Number(item.hours || 0),
+tasks:item.tasks || "",
+materials:item.materials || "",
+photos:Array.isArray(item.photos) ? item.photos : [],
+notes:item.notes || ""
+};
+}
+
+function placeFromDatabase(row){
+return{
+id:String(row.id),
+place:row.place || "",
+type:row.type || "",
+startDate:row.start_date || "",
+endDate:row.end_date || "",
+date:row.date || "",
+workers:row.workers || "",
+hours:Number(row.hours || 0),
+tasks:row.tasks || "",
+materials:row.materials || "",
+photos:Array.isArray(row.photos) ? row.photos : [],
+notes:row.notes || ""
+};
+}
+
+function mirrorPlacesLocally(){
+localStorage.setItem("otherPlaces",JSON.stringify(places));
+}
+
+async function loadPlaces(){
+let oldPlaces=[];
+
+try{
+oldPlaces=JSON.parse(localStorage.getItem("otherPlaces") || "[]");
+if(!Array.isArray(oldPlaces))oldPlaces=[];
+}catch(e){
+oldPlaces=[];
+}
+
+const {data,error}=await db
+.from("other_places")
+.select("*")
+.order("created_at",{ascending:false});
+
+if(error){
+console.error(error);
+alert(t("loadError"));
+return;
+}
+
+if((data || []).length===0 && oldPlaces.length>0){
+
+const rows=oldPlaces.map(item=>placeToDatabase({
+...item,
+id:String(item.id || newId())
+}));
+
+const {error:migrateError}=await db
+.from("other_places")
+.upsert(rows);
+
+if(!migrateError){
+places=oldPlaces.map(item=>({
+...item,
+id:String(item.id)
+}));
+
+mirrorPlacesLocally();
+render();
+return;
+}
+
+console.error(migrateError);
+}
+
+places=(data || []).map(placeFromDatabase);
+mirrorPlacesLocally();
+render();
+}
+
+function applyLanguage(){
+document.documentElement.lang=language;
+document.documentElement.dir=language==="ar" ? "rtl" : "ltr";
+
+const tr=translations[language];
+
+Object.keys(tr).forEach(key=>{
+const el=document.getElementById(key);
+if(el)el.textContent=tr[key];
+});
+
+document.getElementById("languageBtn").textContent=tr.languageBtn;
+document.getElementById("backBtn").textContent=tr.backBtn;
+document.getElementById("pageTitle").textContent=tr.pageTitle;
+document.getElementById("workers").placeholder=tr.placeholderWorkers;
+
+updateFormTitle();
+render();
+}
+
+function toggleLanguage(){
+language=language==="ar" ? "de" : "ar";
+localStorage.setItem("appLanguage",language);
+applyLanguage();
+}
+
+function goHome(){
+window.location.href="index.html";
+}
+
+document.getElementById("photos").addEventListener("change",async function(){
+const files=Array.from(this.files || []);
+if(!files.length)return;
+
+selectedPhotos=[];
+
+for(const file of files){
+if(!file.type.startsWith("image/"))continue;
+const data=await readFile(file);
+selectedPhotos.push(data);
+}
+
+showPhotoPreview();
+});
+
+function readFile(file){
+return new Promise((resolve,reject)=>{
+const reader=new FileReader();
+reader.onload=()=>resolve(reader.result);
+reader.onerror=reject;
+reader.readAsDataURL(file);
+});
+}
+
+function showPhotoPreview(){
+const box=document.getElementById("photoPreview");
+box.innerHTML="";
+
+selectedPhotos.forEach(src=>{
+const img=document.createElement("img");
+img.src=src;
+box.appendChild(img);
+});
+}async function savePlace(){
+const place=document.getElementById("place").value.trim();
+
+if(!place){
+alert(t("enterPlace"));
+return;
+}
+
+const type=document.getElementById("type").value.trim();
+const startDate=document.getElementById("startDate").value;
+const endDate=document.getElementById("endDate").value;
+const workers=document.getElementById("workers").value.trim();
+const hours=Number(document.getElementById("hours").value) || 0;
+const tasks=document.getElementById("tasks").value.trim();
+const materials=document.getElementById("materials").value.trim();
+const notes=document.getElementById("notes").value.trim();
+
+if(editId){
+
+const old=places.find(
+item=>String(item.id)===String(editId)
+);
+
+if(!old)return;
+
+const updated={
+...old,
+place,
+type,
+startDate,
+endDate,
+date:startDate || endDate || old.date || "",
+workers,
+hours,
+tasks,
+materials,
+notes,
+photos:selectedPhotos.length
+? selectedPhotos
+: (old.photos || [])
+};
+
+const {error}=await db
+.from("other_places")
+.update(placeToDatabase(updated))
+.eq("id",String(editId));
+
+if(error){
+console.error(error);
+alert(t("saveError"));
+return;
+}
+
+const index=places.findIndex(
+item=>String(item.id)===String(editId)
+);
+
+if(index!==-1){
+places[index]=updated;
+}
+
+mirrorPlacesLocally();
+alert(t("updated"));
+
+}else{
+
+const newPlace={
+id:newId(),
+place,
+type,
+startDate,
+endDate,
+date:startDate || endDate || "",
+workers,
+hours,
+tasks,
+materials,
+photos:selectedPhotos,
+notes
+};
+
+const {error}=await db
+.from("other_places")
+.insert(placeToDatabase(newPlace));
+
+if(error){
+console.error(error);
+alert(t("saveError"));
+return;
+}
+
+places.push(newPlace);
+mirrorPlacesLocally();
+alert(t("saved"));
+}
+
+cancelEdit();
+render();
+}
+
+function editPlace(id){
+const item=places.find(
+x=>String(x.id)===String(id)
+);
+
+if(!item)return;
+
+editId=String(item.id);
+
+document.getElementById("place").value=item.place || "";
+document.getElementById("type").value=item.type || "";
+document.getElementById("startDate").value=item.startDate || item.date || "";
+document.getElementById("endDate").value=item.endDate || "";
+document.getElementById("workers").value=item.workers || "";
+document.getElementById("hours").value=item.hours || "";
+document.getElementById("tasks").value=item.tasks || "";
+document.getElementById("materials").value=item.materials || "";
+document.getElementById("notes").value=item.notes || "";
+
+selectedPhotos=
+Array.isArray(item.photos)
+? [...item.photos]
+: [];
+
+document.getElementById("photos").value="";
+showPhotoPreview();
+
+document.getElementById("cancelBtn")
+.classList.remove("hidden");
+
+updateFormTitle();
+
+window.scrollTo({
+top:0,
+behavior:"smooth"
+});
+}
+
+function cancelEdit(){
+editId=null;
+
+document.getElementById("place").value="";
+document.getElementById("type").value="";
+document.getElementById("startDate").value="";
+document.getElementById("endDate").value="";
+document.getElementById("workers").value="";
+document.getElementById("hours").value="";
+document.getElementById("tasks").value="";
+document.getElementById("materials").value="";
+document.getElementById("notes").value="";
+document.getElementById("photos").value="";
+
+selectedPhotos=[];
+showPhotoPreview();
+
+document.getElementById("cancelBtn")
+.classList.add("hidden");
+
+updateFormTitle();
+}
+
+function updateFormTitle(){
+document.getElementById("formTitle").textContent=
+editId ? t("formEdit") : t("formAdd");
+
+document.getElementById("saveBtn").textContent=
+editId ? t("updateBtn") : t("saveBtn");
+}
+
+async function deletePlace(id){
+if(!confirm(t("confirmDelete")))return;
+
+const {error}=await db
+.from("other_places")
+.delete()
+.eq("id",String(id));
+
+if(error){
+console.error(error);
+alert(t("deleteError"));
+return;
+}
+
+places=places.filter(
+item=>String(item.id)!==String(id)
+);
+
+mirrorPlacesLocally();
+render();
+}
+
+function formatDate(date){
+if(!date)return t("noDate");
+
+const parts=date.split("-");
+
+if(parts.length!==3)return date;
+
+return `${parts[2]}.${parts[1]}.${parts[0]}`;
+}
+
+function escapeHtml(value){
+return String(value ?? "")
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;")
+.replace(/"/g,"&quot;")
+.replace(/'/g,"&#039;");
+}
+
+function getFilteredPlaces(){
+const placeFilter=document.getElementById("filterPlace")
+.value.trim().toLowerCase();
+
+const typeFilter=document.getElementById("filterType")
+.value.trim().toLowerCase();
+
+const monthFilter=document.getElementById("filterMonth").value;
+
+return places.filter(item=>{
+
+const place=String(item.place || "").toLowerCase();
+const type=String(item.type || "").toLowerCase();
+
+const date=
+item.startDate ||
+item.date ||
+item.endDate ||
+"";
+
+if(placeFilter && !place.includes(placeFilter)){
+return false;
+}
+
+if(typeFilter && !type.includes(typeFilter)){
+return false;
+}
+
+if(monthFilter && !date.startsWith(monthFilter)){
+return false;
+}
+
+return true;
+});
+}
+
+function photosHtml(photos){
+if(!Array.isArray(photos) || !photos.length){
+return `<span class="small">${escapeHtml(t("noPhotos"))}</span>`;
+}
+
+return `
+<div class="photo-grid">
+${photos.map(src=>`
+<img
+src="${src}"
+alt="photo"
+onclick="window.open(this.src,'_blank')"
+style="cursor:pointer"
+>
+`).join("")}
+</div>
+`;
+}
+
+function render(){
+const list=getFilteredPlaces();
+const tbody=document.getElementById("placesTable");
+
+tbody.innerHTML="";
+
+if(!list.length){
+document.getElementById("emptyMessage")
+.classList.remove("hidden");
+}else{
+document.getElementById("emptyMessage")
+.classList.add("hidden");
+}
+
+list.forEach(item=>{
+
+const tr=document.createElement("tr");
+
+const start=item.startDate || item.date || "";
+const end=item.endDate || "";
+
+let dateText="";
+
+if(start && end){
+dateText=`${formatDate(start)} - ${formatDate(end)}`;
+}else if(start){
+dateText=formatDate(start);
+}else if(end){
+dateText=formatDate(end);
+}else{
+dateText=t("noDate");
+}
+
+tr.innerHTML=`
+<td>
+<strong>${escapeHtml(item.place || t("noValue"))}</strong>
+</td>
+
+<td>
+${escapeHtml(item.type || t("noValue"))}
+</td>
+
+<td>
+${escapeHtml(dateText)}
+</td>
+
+<td>
+${escapeHtml(item.workers || t("noValue"))}
+</td>
+
+<td>
+${escapeHtml(item.tasks || t("noValue"))}
+</td>
+
+<td>
+${Number(item.hours || 0)} ${escapeHtml(t("hours"))}
+</td>
+
+<td>
+${escapeHtml(item.materials || t("noValue"))}
+</td>
+
+<td>
+${photosHtml(item.photos)}
+</td>
+
+<td>
+<div class="actions">
+
+<button
+class="btn-edit"
+onclick="editPlace('${String(item.id).replace(/'/g,"\\'")}')">
+${escapeHtml(t("edit"))}
+</button>
+
+<button
+class="btn-danger"
+onclick="deletePlace('${String(item.id).replace(/'/g,"\\'")}')">
+${escapeHtml(t("delete"))}
+</button>
+
+</div>
+</td>
+`;
+
+tbody.appendChild(tr);
+});
+
+updateStats();
+}
+
+function updateStats(){
+const totalJobs=places.length;
+
+const uniquePlaces=new Set(
+places
+.map(item=>
+String(item.place || "")
+.trim()
+.toLowerCase()
+)
+.filter(Boolean)
+).size;
+
+const totalHours=places.reduce(
+(sum,item)=>sum+(Number(item.hours) || 0),
+0
+);
+
+document.getElementById("statJobs").textContent=totalJobs;
+document.getElementById("statPlaces").textContent=uniquePlaces;
+document.getElementById("statHours").textContent=totalHours;
+}
+
+async function startPage(){
+const {data:{session}}=await db.auth.getSession();
+
+if(!session){
+window.location.href="login.html";
+return;
+}
+
+applyLanguage();
+await loadPlaces();
+}
+
+startPage();
+
+</script>
+</body>
+</html>
