@@ -1140,7 +1140,11 @@ async function deductMaterials(assignment){
 if(assignment.materialDeducted){
 return {success:false,already:true};
 }
+const hotel=hotels.find(
+  h=>String(h.id)===String(assignment.hotelId)
+);
 
+const hotelName=hotel ? hotel.name : "";
 const needed=calculateMaterialsForAssignment(assignment);
 const materialIds=Object.keys(needed);
 
@@ -1174,7 +1178,8 @@ const insufficient=[];
 materialIds.forEach(materialId=>{
 
 const material=materials.find(
-m=>String(m.id)===String(materialId)
+  m=>String(m.id)===String(materialId) &&
+     String(m.location || "").trim().toLowerCase()===String(hotelName || "").trim().toLowerCase()
 );
 
 if(!material){
@@ -1208,7 +1213,8 @@ const deductionItems=[];
 for(const materialId of materialIds){
 
 const material=materials.find(
-m=>String(m.id)===String(materialId)
+  m=>String(m.id)===String(materialId) &&
+     String(m.location || "").trim().toLowerCase()===String(hotelName || "").trim().toLowerCase()
 );
 
 const quantity=needed[materialId];
