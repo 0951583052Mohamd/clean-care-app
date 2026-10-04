@@ -1186,7 +1186,7 @@ const material=materials.find(
 if(!material){
 
 insufficient.push({
-name:materialId,
+name:ruleMaterial ? materialName(ruleMaterial) : materialId,
 needed:needed[materialId],
 available:0
 });
