@@ -1213,9 +1213,11 @@ const deductionItems=[];
 
 for(const materialId of materialIds){
 
+const ruleMaterial=materials.find(m=>String(m.id)===String(materialId));
+
 const material=materials.find(
-  m=>String(m.id)===String(materialId) &&
-     String(m.location || "").trim().toLowerCase()===String(hotelName || "").trim().toLowerCase()
+  m=>String(m.location || "").trim().toLowerCase()===String(hotelName || "").trim().toLowerCase() &&
+     String(m.name || "").trim().toLowerCase()===String(ruleMaterial?.name || "").trim().toLowerCase()
 );
 
 const quantity=needed[materialId];
