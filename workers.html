@@ -1245,7 +1245,7 @@ const {error}=await supabaseClient
 quantity:after,
 history:history
 })
-.eq("id",String(materialId));
+.eq("id",String(material.id));
 
 if(error){
 console.error(error);
