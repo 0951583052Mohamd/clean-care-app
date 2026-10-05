@@ -1252,7 +1252,9 @@ function renderMaterials(){
   }else{
 
     list.innerHTML=
-      materials.map(material=>{
+    [...materials]
+  .sort((a,b)=>String(a.location || "").localeCompare(String(b.location || "")))
+  .map(material=>{
 
         const quantity=
           Number(material.quantity || 0);
